@@ -1,0 +1,39 @@
+# IDE
+.idea/
+*.iml
+
+# Flutter
+flutter-app/.dart_tool/
+flutter-app/build/
+flutter-app/.flutter-plugins
+flutter-app/.flutter-plugins-dependencies
+flutter-app/android/.gradle/
+flutter-app/android/local.properties
+
+# Android artifacts
+**/*.apk
+**/*.aab
+flutter-app/android/app/libs/*.aar
+
+# Go
+go-backend/vendor/
+bootstrap/vendor/
+*.log
+
+# bootstrap
+*.swp
+bootstrap/*.key
+bootstrap.key
+bootstrap/*.env
+bootstrap.env
+!bootstrap/*.example.env
+cotune-bootstrap
+
+# gomobile
+*.aar
+*.jar
+
+# Secrets
+*.keystore
+*.jks
+.env
