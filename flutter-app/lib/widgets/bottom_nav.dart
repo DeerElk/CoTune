@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme.dart';
 
 class BottomNav extends StatelessWidget {
@@ -14,6 +15,7 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final bg = theme.colorScheme.surface;
 
     return Container(
@@ -44,21 +46,21 @@ class BottomNav extends StatelessWidget {
                 index: 0,
                 currentIndex: currentIndex,
                 onTap: onTap,
-                tooltip: 'Поиск',
+                tooltip: l10n.search,
               ),
               _NavButton(
                 icon: Icons.music_note,
                 index: 1,
                 currentIndex: currentIndex,
                 onTap: onTap,
-                tooltip: 'Музыка',
+                tooltip: l10n.myMusic,
               ),
               _NavButton(
                 icon: Icons.person,
                 index: 2,
                 currentIndex: currentIndex,
                 onTap: onTap,
-                tooltip: 'Профиль',
+                tooltip: l10n.profile,
               ),
             ],
           ),

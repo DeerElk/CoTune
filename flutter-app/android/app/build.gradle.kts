@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.protobuf")
 }
 
 android {
@@ -16,7 +17,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -38,8 +39,8 @@ android {
         jniLibs {
             // Поддержка 16KB page size для Android 15+
             useLegacyPackaging = false
-            // Исключаем библиотеки, которые не поддерживают 16KB (временно, до пересборки .aar)
-            pickFirsts += listOf("**/libgojni.so", "**/libcotune.so")
+            // Поддержка Go daemon бинарника
+            pickFirsts += listOf("**/cotune-daemon")
         }
         // Подавляем предупреждения о 16KB page size для библиотек, которые будут пересобраны
         resources {
@@ -67,11 +68,39 @@ repositories {
 }
 
 dependencies {
-    implementation(mapOf("name" to "cotune", "ext" to "aar"))
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // gRPC and Protobuf for IPC
+    implementation("io.grpc:grpc-kotlin-stub:1.4.1")
+    implementation("io.grpc:grpc-protobuf:1.62.2")
+    implementation("io.grpc:grpc-stub:1.62.2")
+    implementation("io.grpc:grpc-okhttp:1.62.2")
+    implementation("com.google.protobuf:protobuf-kotlin:3.25.3")
 }
 
-flutter {
-    source = "../.."
-}
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.3"
+    }
 
+    plugins {
+        create("grpc") {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.62.2"
+        }
+        create("grpckt") {
+            artifact = "io.grpc:protoc-gen-grpc-kotlin:1.4.1:jdk8@jar"
+        }
+    }
+
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java")
+                create("kotlin")
+            }
+            task.plugins {
+                create("grpc")
+                create("grpckt")
+            }
+        }
+    }
+}

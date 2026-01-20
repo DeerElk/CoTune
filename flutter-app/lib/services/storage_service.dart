@@ -73,6 +73,13 @@ class StorageService extends ChangeNotifier {
     return null;
   }
 
+  Track? findByCTID(String ctid) {
+    for (final t in allTracks()) {
+      if (t.ctid != null && t.ctid == ctid) return t;
+    }
+    return null;
+  }
+
   Future<void> saveTrack(Track t) async {
     // защита от дублей по checksum
     if (t.checksum != null) {

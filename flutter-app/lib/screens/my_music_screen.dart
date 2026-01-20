@@ -5,6 +5,7 @@ import 'package:cotune_mobile/widgets/folder_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 import '../services/storage_service.dart';
 import '../widgets/track_tile.dart';
 import '../theme.dart';
@@ -13,7 +14,7 @@ import 'add_tracks_screen.dart';
 import '../widgets/rounded_app_bar.dart';
 
 class MyMusicScreen extends StatefulWidget {
-  const MyMusicScreen({Key? key}) : super(key: key);
+  const MyMusicScreen({super.key});
 
   @override
   State<MyMusicScreen> createState() => _MyMusicScreenState();
@@ -40,10 +41,12 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
     // Отступ внизу списка, чтобы кнопка не перекрывала возможности нажатия на последний элемент.
     final double bottomListPadding = _filter == 2 ? 120.0 : 24.0;
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: RoundedAppBar(
-        title: Text('Моя музыка'),
+        title: Text(l10n.myMusic),
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: CotuneTheme.headerTextColor),
@@ -163,49 +166,60 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                   }).toList(),
                                 ),
                         if (_filter == 2)
-                          playlists.isEmpty ? SizedBox(
-                            height:
-                            MediaQuery.of(context).size.height * 0.5,
-                            child: Center(
-                              child: Text(
-                                'Плейлистов пока нет',
-                                style: GoogleFonts.inter(
-                                  color:
-                                  theme.textTheme.bodyMedium?.color,
-                                ),
-                              ),
-                            ),
-                          ) : Column(
-                            children: playlists.map((p) => FolderTile(
-                              name: p.name,
-                              subtitle: '${p.trackIds.length} трек(ов)',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FolderScreen(
-                                    type: FolderType.playlist,
-                                    idOrName: p.id,
+                          playlists.isEmpty
+                              ? SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.5,
+                                  child: Center(
+                                    child: Text(
+                                      'Плейлистов пока нет',
+                                      style: GoogleFonts.inter(
+                                        color:
+                                            theme.textTheme.bodyMedium?.color,
+                                      ),
+                                    ),
                                   ),
+                                )
+                              : Column(
+                                  children: playlists
+                                      .map(
+                                        (p) => FolderTile(
+                                          name: p.name,
+                                          subtitle:
+                                              '${p.trackIds.length} трек(ов)',
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => FolderScreen(
+                                                type: FolderType.playlist,
+                                                idOrName: p.id,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
-                              ),
-                            ),
-                            ).toList(),
-                          ),
                         if (_filter == 3)
-                          unsub.isEmpty ? SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.5,
-                            child: Center(
-                              child: Text(
-                                'Нет неподписанных треков',
-                                style: GoogleFonts.inter(
-                                  color:
-                                  theme.textTheme.bodyMedium?.color,
+                          unsub.isEmpty
+                              ? SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.5,
+                                  child: Center(
+                                    child: Text(
+                                      'Нет неподписанных треков',
+                                      style: GoogleFonts.inter(
+                                        color:
+                                            theme.textTheme.bodyMedium?.color,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  children: unsub
+                                      .map((t) => TrackTile(track: t))
+                                      .toList(),
                                 ),
-                              ),
-                            ),
-                          ) : Column(
-                            children: unsub.map((t) => TrackTile(track: t)).toList(),
-                          ),
                         const SizedBox(height: 24),
                       ],
                     ),
@@ -224,15 +238,25 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                               title: 'Добавить плейлист',
                               builder: (bctx) => [
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      TextField(controller: ctl, decoration: const InputDecoration(hintText: 'Название плейлиста')),
+                                      TextField(
+                                        controller: ctl,
+                                        decoration: const InputDecoration(
+                                          hintText: 'Название плейлиста',
+                                        ),
+                                      ),
                                       const SizedBox(height: 12),
                                       CotuneModalActions(
                                         onCancel: () => Navigator.pop(bctx),
-                                        onConfirm: () => Navigator.pop(bctx, ctl.text.trim()),
+                                        onConfirm: () => Navigator.pop(
+                                          bctx,
+                                          ctl.text.trim(),
+                                        ),
                                         confirmLabel: 'Создать',
                                       ),
                                     ],
@@ -243,21 +267,41 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
 
                             if (res != null && res.isNotEmpty) {
                               final id = await storage.createId();
-                              final p = PlaylistModel(id: id, name: res, trackIds: []);
+                              final p = PlaylistModel(
+                                id: id,
+                                name: res,
+                                trackIds: [],
+                              );
                               await storage.savePlaylist(p);
                               setState(() {});
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => FolderScreen(type: FolderType.playlist, idOrName: p.id)));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FolderScreen(
+                                    type: FolderType.playlist,
+                                    idOrName: p.id,
+                                  ),
+                                ),
+                              );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                             elevation: 6,
                             backgroundColor: CotuneTheme.highlight,
                           ),
                           child: Text(
                             'Добавить плейлист',
-                            style: GoogleFonts.inter(color: CotuneTheme.headerTextColor, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.inter(
+                              color: CotuneTheme.headerTextColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),

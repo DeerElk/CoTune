@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 import '../services/storage_service.dart';
 import '../models/track.dart';
 import '../widgets/track_tile.dart';
@@ -16,7 +17,7 @@ import 'dart:async';
 import 'package:path/path.dart' as p;
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({Key? key}) : super(key: key);
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -91,18 +92,20 @@ class _SearchScreenState extends State<SearchScreen> {
     final filtered = _query.isEmpty
         ? localTracks
         : localTracks
-            .where(
-              (t) =>
-                  t.title.toLowerCase().contains(_query.toLowerCase()) ||
-                  t.artist.toLowerCase().contains(_query.toLowerCase()),
-            )
-            .toList();
+              .where(
+                (t) =>
+                    t.title.toLowerCase().contains(_query.toLowerCase()) ||
+                    t.artist.toLowerCase().contains(_query.toLowerCase()),
+              )
+              .toList();
 
     if (remoteLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (remoteResultsFiltered.isEmpty && filtered.isEmpty && localResults.isEmpty) {
+    if (remoteResultsFiltered.isEmpty &&
+        filtered.isEmpty &&
+        localResults.isEmpty) {
       return Center(
         child: Text(
           'Ничего не найдено',
@@ -142,7 +145,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ...filtered.map((t) {
             // Проверяем, не дублируется ли с результатами из сети
-            final inRemote = remoteResults.any((r) => (r['id'] as String?) == t.id);
+            final inRemote = remoteResults.any(
+              (r) => (r['id'] as String?) == t.id,
+            );
             if (inRemote) return const SizedBox.shrink();
             return TrackTile(track: t);
           }),
@@ -178,7 +183,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     title,
                     style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -197,10 +202,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             IconButton(
-              icon: Icon(
-                Icons.download,
-                color: CotuneTheme.highlight,
-              ),
+              icon: Icon(Icons.download, color: CotuneTheme.highlight),
               onPressed: () => _downloadRemote(item),
             ),
           ],
@@ -214,11 +216,6 @@ class _SearchScreenState extends State<SearchScreen> {
     final storage = Provider.of<StorageService>(context, listen: false);
     final trackId = item['id'] as String? ?? '';
     final peerId = item['owner'] as String? ?? '';
-    // ProviderAddrs может быть как 'addrs', так и 'ProviderAddrs' в JSON
-    final providerAddrs = ((item['addrs'] ?? item['ProviderAddrs']) as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        [];
 
     if (trackId.isEmpty) return;
 
@@ -226,7 +223,8 @@ class _SearchScreenState extends State<SearchScreen> {
       final path = await p2p.fetchFromNetwork(
         trackId,
         preferredPeer: peerId.isNotEmpty ? peerId : null,
-        providerAddrs: providerAddrs,
+        outputPath: '',
+        maxProviders: 5,
       );
       final sum = await compute(computeMd5, path);
 
@@ -237,7 +235,9 @@ class _SearchScreenState extends State<SearchScreen> {
         await storage.updateTrack(existing);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Уже в библиотеке, отмечен как избранный')),
+            const SnackBar(
+              content: Text('Уже в библиотеке, отмечен как избранный'),
+            ),
           );
         }
         return;
@@ -265,9 +265,9 @@ class _SearchScreenState extends State<SearchScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Скачано и сохранено')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Скачано и сохранено')));
       }
     } catch (e) {
       debugPrint('fetch error: $e');
@@ -281,18 +281,20 @@ class _SearchScreenState extends State<SearchScreen> {
     final filtered = _query.isEmpty
         ? tracks
         : tracks
-        .where(
-          (t) =>
-      t.title.toLowerCase().contains(_query.toLowerCase()) ||
-          t.artist.toLowerCase().contains(_query.toLowerCase()),
-    )
-        .toList();
+              .where(
+                (t) =>
+                    t.title.toLowerCase().contains(_query.toLowerCase()) ||
+                    t.artist.toLowerCase().contains(_query.toLowerCase()),
+              )
+              .toList();
     final artists = tracks.map((t) => t.artist).toSet().toList()..sort();
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final headerColor = CotuneTheme.highlight;
     final iconColor =
-        theme.iconTheme.color ?? (theme.brightness == Brightness.dark ? Colors.white : Colors.black);
+        theme.iconTheme.color ??
+        (theme.brightness == Brightness.dark ? Colors.white : Colors.black);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -316,7 +318,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     textAlignVertical: TextAlignVertical.center,
                     decoration: InputDecoration(
-                      hintText: 'Поиск',
+                      hintText: l10n.searchPlaceholder,
                       hintStyle: GoogleFonts.inter(
                         color: theme.textTheme.bodyMedium?.color,
                       ),
@@ -369,25 +371,26 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: _filter == 2
                   ? ListView.builder(
-                itemCount: artists.length,
-                itemBuilder: (_, i) => FolderTile(
-                  name: artists[i],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => FolderScreen(
-                        type: FolderType.artist,
-                        idOrName: artists[i],
+                      itemCount: artists.length,
+                      itemBuilder: (_, i) => FolderTile(
+                        name: artists[i],
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FolderScreen(
+                              type: FolderType.artist,
+                              idOrName: artists[i],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ) : _query.trim().length >= 3
+                    )
+                  : _query.trim().length >= 3
                   ? _buildSearchResults()
                   : ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (_, i) => TrackTile(track: filtered[i]),
-              ),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) => TrackTile(track: filtered[i]),
+                    ),
             ),
           ],
         ),

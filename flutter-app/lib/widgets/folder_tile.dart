@@ -15,7 +15,7 @@ class FolderTile extends StatelessWidget {
     final titleStyle = GoogleFonts.manrope(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      color: theme.colorScheme.onBackground,
+      color: theme.colorScheme.onSurface,
     );
     final subtitleStyle = GoogleFonts.inter(
       fontSize: 13,

@@ -7,7 +7,8 @@ class Track {
   String path;
   bool liked;
   bool recognized;
-  String? checksum;
+  String? checksum; // Legacy MD5 (deprecated, use ctid)
+  String? ctid; // Canonical Track ID (SHA256 of normalized PCM)
 
   Track({
     required this.id,
@@ -17,6 +18,7 @@ class Track {
     this.liked = false,
     this.recognized = true,
     this.checksum,
+    this.ctid,
   });
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +29,7 @@ class Track {
     'liked': liked,
     'recognized': recognized,
     'checksum': checksum,
+    'ctid': ctid,
   };
 
   static Track fromJson(Map m) {
@@ -37,6 +40,7 @@ class Track {
     final liked = (m['liked'] as bool?) ?? false;
     final recognized = (m['recognized'] as bool?) ?? true;
     final checksum = (m['checksum'] as String?);
+    final ctid = (m['ctid'] as String?);
 
     return Track(
       id: id,
@@ -46,6 +50,7 @@ class Track {
       liked: liked,
       recognized: recognized,
       checksum: checksum,
+      ctid: ctid,
     );
   }
 }

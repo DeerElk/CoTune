@@ -9,6 +9,7 @@ flutter-app/.flutter-plugins
 flutter-app/.flutter-plugins-dependencies
 flutter-app/android/.gradle/
 flutter-app/android/local.properties
+flutter-app/android/build/
 
 # Android artifacts
 **/*.apk
@@ -32,6 +33,9 @@ cotune-bootstrap
 # gomobile
 *.aar
 *.jar
+
+#jni
+cotune-daemon
 
 # Secrets
 *.keystore

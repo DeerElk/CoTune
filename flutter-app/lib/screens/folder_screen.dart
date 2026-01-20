@@ -16,11 +16,7 @@ class FolderScreen extends StatefulWidget {
   final FolderType type;
   final String idOrName;
 
-  const FolderScreen({
-    super.key,
-    required this.type,
-    required this.idOrName,
-  });
+  const FolderScreen({super.key, required this.type, required this.idOrName});
 
   @override
   State<FolderScreen> createState() => _FolderScreenState();
@@ -44,12 +40,13 @@ class _FolderScreenState extends State<FolderScreen> {
       tracks = playlist == null
           ? []
           : playlist.trackIds
-          .map((id) => storage.getTrack(id))
-          .where((t) => t != null)
-          .toList();
+                .map((id) => storage.getTrack(id))
+                .where((t) => t != null)
+                .toList();
     } else {
       title = widget.idOrName;
-      tracks = storage.allTracks()
+      tracks = storage
+          .allTracks()
           .where((t) => t.artist == widget.idOrName)
           .toList();
     }
@@ -68,12 +65,14 @@ class _FolderScreenState extends State<FolderScreen> {
         ),
         actions: isPlaylist
             ? [
-          IconButton(
-            icon: const Icon(Icons.more_vert,
-                color: CotuneTheme.headerTextColor),
-            onPressed: () => _openPlaylistOptions(context, playlist!),
-          ),
-        ]
+                IconButton(
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: CotuneTheme.headerTextColor,
+                  ),
+                  onPressed: () => _openPlaylistOptions(context, playlist!),
+                ),
+              ]
             : null,
       ),
       body: ListView.builder(
@@ -89,33 +88,33 @@ class _FolderScreenState extends State<FolderScreen> {
 
     OptionSheet.show(context, [
       ListTile(
-        leading:
-        Icon(Icons.playlist_add, color: theme.colorScheme.primary),
-        title: Text('Добавить в плейлист',
-            style:
-            GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        leading: Icon(Icons.playlist_add, color: theme.colorScheme.primary),
+        title: Text(
+          'Добавить в плейлист',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           _addFromLiked(context, pl);
         },
       ),
       ListTile(
-        leading:
-        Icon(Icons.edit, color: theme.colorScheme.primary),
-        title: Text('Переименовать плейлист',
-            style:
-            GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        leading: Icon(Icons.edit, color: theme.colorScheme.primary),
+        title: Text(
+          'Переименовать плейлист',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           _renamePlaylist(context, pl);
         },
       ),
       ListTile(
-        leading:
-        Icon(Icons.delete, color: theme.colorScheme.error),
-        title: Text('Удалить плейлист',
-            style:
-            GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        leading: Icon(Icons.delete, color: theme.colorScheme.error),
+        title: Text(
+          'Удалить плейлист',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           _deletePlaylist(context, pl);
@@ -136,7 +135,10 @@ class _FolderScreenState extends State<FolderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: ctl, decoration: const InputDecoration(labelText: 'Название')),
+              TextField(
+                controller: ctl,
+                decoration: const InputDecoration(labelText: 'Название'),
+              ),
               const SizedBox(height: 12),
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
@@ -166,8 +168,12 @@ class _FolderScreenState extends State<FolderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Плейлист "${pl.name}" будет удалён.',
-                  style: TextStyle(color: Theme.of(bctx).colorScheme.onSurface.withOpacity(0.8))),
+              Text(
+                'Плейлист "${pl.name}" будет удалён.',
+                style: TextStyle(
+                  color: Theme.of(bctx).colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
               const SizedBox(height: 16),
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
@@ -182,7 +188,10 @@ class _FolderScreenState extends State<FolderScreen> {
     );
 
     if (ok == true) {
-      await Provider.of<StorageService>(ctx, listen: false).deletePlaylist(pl.id);
+      await Provider.of<StorageService>(
+        ctx,
+        listen: false,
+      ).deletePlaylist(pl.id);
       Navigator.pop(ctx);
     }
   }
@@ -191,53 +200,65 @@ class _FolderScreenState extends State<FolderScreen> {
     final storage = Provider.of<StorageService>(ctx, listen: false);
     final liked = storage.allTracks().where((t) => t.liked).toList();
     if (liked.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Нет понравившихся треков')));
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(const SnackBar(content: Text('Нет понравившихся треков')));
       return;
     }
 
-    final chosen = await showCotuneModal<List<String>?>( // builder: (bctx) => [...]
+    final chosen = await showCotuneModal<List<String>?>(
+      // builder: (bctx) => [...]
       ctx,
       title: 'Добавить в плейлист',
       builder: (bctx) {
         final selected = <String>{};
         return [
-          StatefulBuilder(builder: (sbCtx, setSb) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(ctx).size.height * 0.18,
+          StatefulBuilder(
+            builder: (sbCtx, setSb) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.18,
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: liked.length,
+                      itemBuilder: (_, i) {
+                        final t = liked[i];
+                        final sel = selected.contains(t.id);
+                        return CheckboxListTile(
+                          value: sel,
+                          onChanged: (v) => setSb(() {
+                            if (v == true) {
+                              selected.add(t.id);
+                            } else {
+                              selected.remove(t.id);
+                            }
+                          }),
+                          title: Text(
+                            t.title,
+                            style: TextStyle(
+                              color: Theme.of(
+                                sbCtx,
+                              ).colorScheme.onSurface.withOpacity(0.85),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: liked.length,
-                    itemBuilder: (_, i) {
-                      final t = liked[i];
-                      final sel = selected.contains(t.id);
-                      return CheckboxListTile(
-                        value: sel,
-                        onChanged: (v) => setSb(() {
-                          if (v == true) selected.add(t.id);
-                          else selected.remove(t.id);
-                        }),
-                        title: Text(
-                          t.title,
-                          style: TextStyle(color: Theme.of(sbCtx).colorScheme.onSurface.withOpacity(0.85)),
-                        ),
-                      );
-                    },
+                  const SizedBox(height: 12),
+                  CotuneModalActions(
+                    onCancel: () => Navigator.pop(bctx, <String>[]),
+                    onConfirm: () => Navigator.pop(bctx, selected.toList()),
+                    confirmLabel: 'Добавить',
                   ),
-                ),
-                const SizedBox(height: 12),
-                CotuneModalActions(
-                  onCancel: () => Navigator.pop(bctx, <String>[]),
-                  onConfirm: () => Navigator.pop(bctx, selected.toList()),
-                  confirmLabel: 'Добавить',
-                ),
-              ],
-            );
-          }),
+                ],
+              );
+            },
+          ),
         ];
       },
     );
@@ -246,7 +267,9 @@ class _FolderScreenState extends State<FolderScreen> {
       pl.trackIds.addAll(chosen.where((id) => !pl.trackIds.contains(id)));
       await storage.savePlaylist(pl);
       setState(() {});
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Треки добавлены')));
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(const SnackBar(content: Text('Треки добавлены')));
     }
   }
 }

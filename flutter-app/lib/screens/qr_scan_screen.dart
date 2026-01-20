@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../widgets/rounded_app_bar.dart';
 
 class QRScanScreen extends StatefulWidget {
-  const QRScanScreen({Key? key}) : super(key: key);
+  const QRScanScreen({super.key});
 
   @override
   State<QRScanScreen> createState() => _QRScanScreenState();

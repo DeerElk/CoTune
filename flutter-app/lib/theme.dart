@@ -90,7 +90,7 @@ class CotuneTheme {
 
     return base.copyWith(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
       textTheme: textTheme,
 
       extensions: [
@@ -111,7 +111,9 @@ class CotuneTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: highlight,
           foregroundColor: headerTextColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -132,15 +134,13 @@ class CotuneTheme {
       onSecondary: Colors.white,
       surface: const Color(0xFF121212),
       onSurface: Colors.white,
-      background: Colors.black,
-      onBackground: Colors.white,
       error: Colors.redAccent,
       onError: Colors.white,
     );
 
     return base.copyWith(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
       textTheme: textTheme,
 
       extensions: [
@@ -161,7 +161,9 @@ class CotuneTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: highlight,
           foregroundColor: headerTextColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );

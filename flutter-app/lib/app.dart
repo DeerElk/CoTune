@@ -1,7 +1,9 @@
 import 'package:cotune_mobile/screens/profile_screen.dart';
 import 'package:cotune_mobile/services/p2p_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'l10n/app_localizations.dart';
 import 'theme.dart';
 import 'services/storage_service.dart';
 import 'services/audio_player_service.dart';
@@ -12,20 +14,23 @@ import 'widgets/bottom_nav.dart';
 
 class AppSettings extends ChangeNotifier {
   ThemeMode _mode = ThemeMode.system;
-  String _locale = 'ru';
+  Locale _locale = const Locale('ru');
 
   ThemeMode get themeMode => _mode;
-  String get locale => _locale;
+  Locale get locale => _locale;
 
   void setThemeMode(ThemeMode m) {
     _mode = m;
     notifyListeners();
   }
 
-  void setLocale(String l) {
-    _locale = l;
+  void setLocale(String langCode) {
+    _locale = Locale(langCode);
     notifyListeners();
   }
+
+  // For compatibility with existing code
+  String get localeString => _locale.languageCode;
 }
 
 class CotuneApp extends StatelessWidget {
@@ -53,6 +58,14 @@ class CotuneApp extends StatelessWidget {
             darkTheme: CotuneTheme.darkTheme(),
             debugShowCheckedModeBanner: false,
             themeMode: appSettings.themeMode,
+            locale: appSettings.locale,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('ru')],
             home: const HomeShell(),
           );
         },
@@ -71,11 +84,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 1;
 
-  final _pages = const [
-    SearchScreen(),
-    MyMusicScreen(),
-    ProfileScreen(),
-  ];
+  final _pages = const [SearchScreen(), MyMusicScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -84,10 +93,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
 
-      body: IndexedStack(
-        index: _index,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _index, children: _pages),
 
       bottomNavigationBar: SafeArea(
         top: false,
@@ -106,4 +112,3 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 }
-

@@ -8,9 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 
 import '../services/storage_service.dart';
-import '../services/acousticid_service.dart';
 import '../models/track.dart';
 import '../widgets/rounded_app_bar.dart';
 
@@ -20,7 +20,7 @@ Future<String> _computeMd5(String path) async {
 }
 
 class AddTracksScreen extends StatefulWidget {
-  const AddTracksScreen({Key? key}) : super(key: key);
+  const AddTracksScreen({super.key});
 
   @override
   State<AddTracksScreen> createState() => _AddTracksScreenState();
@@ -29,7 +29,6 @@ class AddTracksScreen extends StatefulWidget {
 class _AddTracksScreenState extends State<AddTracksScreen> {
   List<PlatformFile> picked = [];
   bool loading = false;
-  final acoustic = AcousticIdService();
 
   Future<void> pickFiles() async {
     final res = await FilePicker.platform.pickFiles(
@@ -71,7 +70,10 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
       try {
         if (f.path == null) continue;
 
-        final target = await copyToApp(f.path!, f.name); // IO — async, not on UI thread
+        final target = await copyToApp(
+          f.path!,
+          f.name,
+        ); // IO — async, not on UI thread
         final sum = await compute(_computeMd5, target);
         final dup = storage.findByChecksum(sum) != null;
         if (dup) {
@@ -80,10 +82,14 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
           } catch (_) {}
           continue;
         }
-        final meta = await acoustic.identify(target);
-        final titleCandidate = meta?['title']?.toString() ?? p.basenameWithoutExtension(f.name);
+        final meta = null;
+        final titleCandidate =
+            meta?['title']?.toString() ?? p.basenameWithoutExtension(f.name);
         final artistCandidate = meta?['artist']?.toString() ?? 'Unknown Artist';
-        final recognized = meta != null && (meta['title'] != null) && (meta['title'].toString().trim().isNotEmpty);
+        final recognized =
+            meta != null &&
+            (meta['title'] != null) &&
+            (meta['title'].toString().trim().isNotEmpty);
 
         // используем checksum как стабильный trackId для дедупликации в P2P
         final id = sum.isNotEmpty ? sum : await storage.createId();
@@ -124,7 +130,11 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
     if (errors.isNotEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Некоторые файлы не импортированы (${errors.length})')),
+          SnackBar(
+            content: Text(
+              'Некоторые файлы не импортированы (${errors.length})',
+            ),
+          ),
         );
       }
     }
@@ -135,9 +145,10 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: const RoundedAppBar(title: Text('Добавить музыку')),
+      appBar: RoundedAppBar(title: Text(l10n.addMusic)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -146,30 +157,30 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
               Expanded(
                 child: picked.isEmpty
                     ? Center(
-                  child: Text(
-                    'Файлы не выбраны',
-                    style: GoogleFonts.inter(
-                      color: theme.textTheme.bodyMedium?.color,
-                    ),
-                  ),
-                )
+                        child: Text(
+                          'Файлы не выбраны',
+                          style: GoogleFonts.inter(
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                      )
                     : ListView.builder(
-                  itemCount: picked.length,
-                  itemBuilder: (_, i) => ListTile(
-                    title: Text(
-                      picked[i].name,
-                      style: GoogleFonts.inter(
-                        color: theme.colorScheme.onBackground,
+                        itemCount: picked.length,
+                        itemBuilder: (_, i) => ListTile(
+                          title: Text(
+                            picked[i].name,
+                            style: GoogleFonts.inter(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${(picked[i].size / 1024).toStringAsFixed(1)} KB',
+                            style: GoogleFonts.inter(
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      '${(picked[i].size / 1024).toStringAsFixed(1)} KB',
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ),
-                ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -196,13 +207,13 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: ElevatedButton(
                         onPressed: loading || picked.isEmpty ? null : importAll,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
                         child: Text(
                           loading ? 'Импорт...' : 'Импорт',
                           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                           textAlign: TextAlign.center,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
                         ),
                       ),
                     ),

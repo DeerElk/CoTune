@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/p2p_service.dart';
 import '../services/qr_service.dart';
 import '../theme.dart';
@@ -42,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final appDir = await getApplicationDocumentsDirectory();
         final basePath = p.join(appDir.path, 'cotune_data');
         await p2p.ensureNodeRunning(basePath: basePath);
-        await p2p.enableAutoNetwork();
+        // AutoNetwork is automatically enabled by the daemon
       } catch (_) {}
       final info = await p2p.generatePeerInfo();
       List<String> hosts = <String>[];
@@ -86,22 +87,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (result != null && result is String) {
       try {
-        await Provider.of<P2PService>(context, listen: false).connectToPeer(result);
-        final hosts = await Provider.of<P2PService>(context, listen: false)
-            .getKnownPeers()
-            .catchError((_) => <String>[]);
+        await Provider.of<P2PService>(
+          context,
+          listen: false,
+        ).connectToPeer(result);
+        final hosts = await Provider.of<P2PService>(
+          context,
+          listen: false,
+        ).getKnownPeers().catchError((_) => <String>[]);
         if (mounted) setState(() => _hosts = hosts);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Подключено')),
-          );
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.connected)));
         }
       } catch (e) {
         debugPrint('connect error: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Не удалось подключиться')),
-          );
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.connectionFailed)));
         }
       }
     }
@@ -109,10 +116,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _enterManual() {
     final ctl = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
 
     showCotuneModal<void>(
       context,
-      title: 'Ввести вручную',
+      title: l10n.enterManually,
       builder: (ctx) => [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -122,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextField(
                 controller: ctl,
                 maxLines: null,
-                decoration: const InputDecoration(labelText: 'Peer info (JSON)'),
+                decoration: InputDecoration(labelText: l10n.peerInfoJson),
               ),
               const SizedBox(height: 12),
               CotuneModalActions(
@@ -131,19 +139,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final txt = ctl.text.trim();
                   if (txt.isNotEmpty) {
                     try {
-                      await Provider.of<P2PService>(context, listen: false).connectToPeer(txt);
-                      final hosts = await Provider.of<P2PService>(context, listen: false)
-                          .getKnownPeers()
-                          .catchError((_) => <String>[]);
+                      await Provider.of<P2PService>(
+                        context,
+                        listen: false,
+                      ).connectToPeer(txt);
+                      final hosts = await Provider.of<P2PService>(
+                        context,
+                        listen: false,
+                      ).getKnownPeers().catchError((_) => <String>[]);
                       if (mounted) setState(() => _hosts = hosts);
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Подключено')));
+                      if (mounted) {
+                        final l10n = AppLocalizations.of(context)!;
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(l10n.connected)));
+                      }
                     } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ошибка подключения')));
+                      if (mounted) {
+                        final l10n = AppLocalizations.of(context)!;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.connectionError)),
+                        );
+                      }
                     }
                   }
                   Navigator.of(ctx).pop();
                 },
-                confirmLabel: 'Подключить',
+                confirmLabel: l10n.connect,
               ),
             ],
           ),
@@ -155,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openSettingsSheet() {
     final appSettings = Provider.of<AppSettings>(context, listen: false);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final textColor = theme.colorScheme.onSurface;
     final dropdownTextColor = theme.colorScheme.onSurface;
@@ -166,26 +189,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Язык',
+              l10n.language,
               style: GoogleFonts.inter(color: textColor),
             ),
           ),
           DropdownButton<String>(
-            value: appSettings.locale,
+            value: appSettings.locale.languageCode,
             dropdownColor: theme.colorScheme.surface,
             style: GoogleFonts.inter(color: dropdownTextColor),
             items: [
               DropdownMenuItem(
                 value: 'ru',
                 child: Text(
-                  'Русский',
+                  l10n.russian,
                   style: GoogleFonts.inter(color: dropdownTextColor),
                 ),
               ),
               DropdownMenuItem(
                 value: 'en',
                 child: Text(
-                  'English',
+                  l10n.english,
                   style: GoogleFonts.inter(color: dropdownTextColor),
                 ),
               ),
@@ -202,10 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Icon(Icons.brightness_6, color: theme.iconTheme.color),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Тема',
-              style: GoogleFonts.inter(color: textColor),
-            ),
+            child: Text(l10n.theme, style: GoogleFonts.inter(color: textColor)),
           ),
           DropdownButton<ThemeMode>(
             value: appSettings.themeMode,
@@ -215,21 +235,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               DropdownMenuItem(
                 value: ThemeMode.system,
                 child: Text(
-                  'Системная',
+                  l10n.systemTheme,
                   style: GoogleFonts.inter(color: dropdownTextColor),
                 ),
               ),
               DropdownMenuItem(
                 value: ThemeMode.dark,
                 child: Text(
-                  'Тёмная',
+                  l10n.darkTheme,
                   style: GoogleFonts.inter(color: dropdownTextColor),
                 ),
               ),
               DropdownMenuItem(
                 value: ThemeMode.light,
                 child: Text(
-                  'Светлая',
+                  l10n.lightTheme,
                   style: GoogleFonts.inter(color: dropdownTextColor),
                 ),
               ),
@@ -244,15 +264,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ]);
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: RoundedAppBar(
-        title: const Text('Профиль'),
+        title: Text(l10n.profile),
         actions: [
           IconButton(
             icon: Icon(Icons.settings, color: CotuneTheme.headerTextColor),
@@ -267,31 +287,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Center(
               child: _loading
                   ? const SizedBox(
-                width: 220,
-                height: 220,
-                child: Center(child: CircularProgressIndicator()),
-              )
+                      width: 220,
+                      height: 220,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
                   : _peerInfo == null
                   ? Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    'Нет peer info',
-                    style: GoogleFonts.inter(
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                ),
-              )
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          l10n.noPeerInfo,
+                          style: GoogleFonts.inter(
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                      ),
+                    )
                   : QRService.qrWidget(
-                jsonEncode(_peerInfo!), // ✅ кодируем при показе QR
-                size: 220,
-              ),
+                      jsonEncode(_peerInfo!), // ✅ кодируем при показе QR
+                      size: 220,
+                    ),
             ),
             const SizedBox(height: 12),
             Padding(
@@ -311,13 +331,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               QRService.copyToClipboard(
                                 context,
                                 jsonEncode(_peerInfo!), // ✅ кодируем здесь
-                                successMessage: 'Скопировано',
+                                successMessage: l10n.copied,
                               );
                             }
                           },
-                          icon: Icon(Icons.copy, color: CotuneTheme.headerTextColor),
-                          label: Text('Копировать',
-                              style: GoogleFonts.inter(color: CotuneTheme.headerTextColor)),
+                          icon: Icon(
+                            Icons.copy,
+                            color: CotuneTheme.headerTextColor,
+                          ),
+                          label: Text(
+                            l10n.copy,
+                            style: GoogleFonts.inter(
+                              color: CotuneTheme.headerTextColor,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -327,10 +354,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundColor: CotuneTheme.highlight,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: _peerInfo == null ? null : _shareQrImagePlusText,
-                          icon: Icon(Icons.share, color: CotuneTheme.headerTextColor),
-                          label: Text('Поделиться',
-                              style: GoogleFonts.inter(color: CotuneTheme.headerTextColor)),
+                          onPressed: _peerInfo == null
+                              ? null
+                              : _shareQrImagePlusText,
+                          icon: Icon(
+                            Icons.share,
+                            color: CotuneTheme.headerTextColor,
+                          ),
+                          label: Text(
+                            l10n.share,
+                            style: GoogleFonts.inter(
+                              color: CotuneTheme.headerTextColor,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -345,9 +381,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: _scanQr,
-                          icon: Icon(Icons.qr_code_scanner, color: CotuneTheme.headerTextColor),
-                          label: Text('Сканировать',
-                              style: GoogleFonts.inter(color: CotuneTheme.headerTextColor)),
+                          icon: Icon(
+                            Icons.qr_code_scanner,
+                            color: CotuneTheme.headerTextColor,
+                          ),
+                          label: Text(
+                            l10n.scan,
+                            style: GoogleFonts.inter(
+                              color: CotuneTheme.headerTextColor,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -358,9 +401,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: _enterManual,
-                          icon: Icon(Icons.edit, color: CotuneTheme.headerTextColor),
-                          label: Text('Ввести вручную',
-                              style: GoogleFonts.inter(color: CotuneTheme.headerTextColor)),
+                          icon: Icon(
+                            Icons.edit,
+                            color: CotuneTheme.headerTextColor,
+                          ),
+                          label: Text(
+                            l10n.enterManually,
+                            style: GoogleFonts.inter(
+                              color: CotuneTheme.headerTextColor,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -374,8 +424,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Подключённые хосты',
-                  style: GoogleFonts.inter(color: theme.textTheme.bodyLarge?.color),
+                  l10n.connectedHosts,
+                  style: GoogleFonts.inter(
+                    color: theme.textTheme.bodyLarge?.color,
+                  ),
                 ),
               ),
             ),
@@ -383,45 +435,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: _hosts.isEmpty
                   ? Center(
-                child: Text(
-                  'Нет подключённых хостов',
-                  style: GoogleFonts.inter(color: theme.textTheme.bodyMedium?.color),
-                ),
-              )
-                  : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                itemCount: _hosts.length,
-                itemBuilder: (_, i) => Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.device_hub, color: theme.iconTheme.color),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _hosts[i],
-                          style: GoogleFonts.inter(
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
+                      child: Text(
+                        l10n.noConnectedHosts,
+                        style: GoogleFonts.inter(
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
                       ),
-                      IconButton(
-                        tooltip: 'Скопировать адрес',
-                        icon: Icon(Icons.copy, color: theme.iconTheme.color),
-                        onPressed: () {
-                          QRService.copyToClipboard(context, _hosts[i],
-                              successMessage: 'Скопировано');
-                        },
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                      itemCount: _hosts.length,
+                      itemBuilder: (_, i) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.device_hub,
+                              color: theme.iconTheme.color,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _hosts[i],
+                                style: GoogleFonts.inter(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: l10n.copyAddressTooltip,
+                              icon: Icon(
+                                Icons.copy,
+                                color: theme.iconTheme.color,
+                              ),
+                              onPressed: () {
+                                QRService.copyToClipboard(
+                                  context,
+                                  _hosts[i],
+                                  successMessage: l10n.copied,
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

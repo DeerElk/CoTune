@@ -1,28 +1,53 @@
 // lib/services/p2p_service.dart
+// DEPRECATED: Use P2PGrpcService for new code
+// This service is kept for backward compatibility
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'p2p_grpc_service.dart';
 
-/// Управляет Go-нoдой через Kotlin bridge + HTTP API
+/// Управляет Go-нoдой через Kotlin bridge + gRPC API
+/// This service now uses gRPC by default, but can fall back to HTTP
 class P2PService {
   static const MethodChannel _mc = MethodChannel('cotune_node');
 
   final String httpBase; // например: http://127.0.0.1:7777
   bool _started = false;
+  final bool useGrpc;
+  P2PGrpcService? _grpcService;
 
-  P2PService({this.httpBase = 'http://127.0.0.1:7777'});
+  P2PService({this.httpBase = 'http://127.0.0.1:7777', this.useGrpc = true}) {
+    if (useGrpc) {
+      final addr = httpBase.replaceFirst(RegExp(r'^https?://'), '');
+      _grpcService = P2PGrpcService(address: addr);
+    }
+  }
 
   /// Запускает ноду + ждёт /status
   Future<void> ensureNodeRunning({
-    String http = 'http://127.0.0.1:7777',
+    String? http,
+    String? proto,
     String listen = '/ip4/0.0.0.0/tcp/0',
     String relays = '',
     String? basePath,
     Duration timeout = const Duration(seconds: 15),
   }) async {
+    if (useGrpc && _grpcService != null) {
+      // Extract proto address from http or use provided proto
+      final protoAddr = proto ?? (http != null ? http.replaceFirst(RegExp(r'^https?://'), '') : '127.0.0.1:7777');
+      _grpcService = P2PGrpcService(address: protoAddr);
+      return await _grpcService!.ensureNodeRunning(
+        proto: protoAddr,
+        listen: listen,
+        relays: relays,
+        basePath: basePath,
+        timeout: timeout,
+      );
+    }
+
+    // Fallback to HTTP
     if (_started) {
       try {
         await status();
@@ -32,85 +57,70 @@ class P2PService {
       }
     }
 
-    final httpHostPort = http.replaceFirst(RegExp(r'^https?://'), '');
+    final httpHostPort = (http ?? httpBase).replaceFirst(RegExp(r'^https?://'), '');
 
     try {
-      await _mc.invokeMethod<String>(
-        'startNode',
-        {
-          'http': httpHostPort,
-          'listen': listen,
-          'relays': relays,
-          if (basePath != null) 'basePath': basePath,
-        },
-      );
+      await _mc.invokeMethod<String>('startNode', {
+        'proto': proto ?? httpHostPort,
+        'listen': listen,
+        'relays': relays,
+        if (basePath != null) 'basePath': basePath,
+      });
     } catch (e) {
       debugPrint('startNode invokeMethod error: $e');
-      // Продолжаем - возможно нода уже запущена
     }
 
-    // Ждём запуска HTTP сервера с увеличенным таймаутом
     final end = DateTime.now().add(timeout);
     Exception? lastError;
     while (DateTime.now().isBefore(end)) {
       try {
-        final st = await status();
-        if (st['running'] == true) {
-          _started = true;
-          return;
-        }
+        await status();
+        _started = true;
+        return;
       } catch (e) {
         lastError = e is Exception ? e : Exception(e.toString());
         await Future.delayed(const Duration(milliseconds: 500));
       }
     }
-
-    // Если не удалось, но это не критично - продолжаем работу
-    if (lastError != null) {
-      debugPrint('Node startup timeout, but continuing: $lastError');
-    }
-    _started = false;
+    throw lastError ?? Exception('Node not ready');
   }
 
-  Future<String> stopNode() async {
-    final res = await _mc.invokeMethod<String>('stopNode');
-    _started = false;
-    return res ?? 'stopped';
-  }
-
-  /// GET /status
   Future<Map<String, dynamic>> status() async {
-    final r = await http
-        .get(Uri.parse('$httpBase/status'))
-        .timeout(const Duration(seconds: 2));
-
-    if (r.statusCode == 200) {
-      return jsonDecode(r.body) as Map<String, dynamic>;
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.status();
     }
-    throw Exception('status error ${r.statusCode}');
+
+    final r = await http.get(Uri.parse('$httpBase/status')).timeout(const Duration(seconds: 2));
+    if (r.statusCode != 200) {
+      throw Exception('status error ${r.statusCode}');
+    }
+    return jsonDecode(r.body) as Map<String, dynamic>;
   }
 
-  /// GET /peerinfo?format=json
-  Future<Map<String, dynamic>> generatePeerInfo() async {
-    // Пробуем несколько раз, если сервер еще не готов
+  Future<Map<String, dynamic>> generatePeerInfo({String format = 'json'}) async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.generatePeerInfo(format: format);
+    }
+
     Exception? lastError;
     for (int i = 0; i < 3; i++) {
       try {
         final r = await http
-            .get(Uri.parse('$httpBase/peerinfo?format=json'))
-            .timeout(const Duration(seconds: 3));
+            .get(Uri.parse('$httpBase/peerinfo?format=$format'))
+            .timeout(const Duration(seconds: 2));
 
         if (r.statusCode != 200) {
           throw Exception('peerinfo error ${r.statusCode}');
         }
 
         final j = jsonDecode(r.body) as Map<String, dynamic>;
-        final List<String> addrs =
-            (j['addrs'] as List? ?? []).map((e) => e.toString()).toList();
-        final List<String> relays =
-            (j['relays'] as List? ?? []).map((e) => e.toString()).toList();
+        final List<String> addrs = (j['addrs'] as List? ?? [])
+            .map((e) => e.toString())
+            .toList();
+        final List<String> relays = (j['relays'] as List? ?? [])
+            .map((e) => e.toString())
+            .toList();
 
-        // fallback: если backend не вернул relays, подхватываем /relays вручную
         List<String> relaysSnapshot = relays;
         if (relaysSnapshot.isEmpty) {
           try {
@@ -137,16 +147,23 @@ class P2PService {
 
   Future<Map<String, dynamic>> getPeerInfo() => generatePeerInfo();
 
-  /// Получаем QR из Kotlin (PNG Uint8List)
   Future<Uint8List?> getPeerInfoQr() async {
+    if (useGrpc && _grpcService != null) {
+      final qr = await _grpcService!.getPeerInfoQr();
+      if (qr != null) return qr;
+    }
+
     final data = await _mc.invokeMethod('getPeerInfoQrNative');
     if (data is Uint8List) return data;
     if (data is List<int>) return Uint8List.fromList(data);
     return null;
   }
 
-  /// GET /known_peers
   Future<List<String>> getKnownPeers() async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.getKnownPeers();
+    }
+
     final r = await http
         .get(Uri.parse('$httpBase/known_peers'))
         .timeout(const Duration(seconds: 2));
@@ -165,10 +182,8 @@ class P2PService {
           out.add(v.toString());
         }
       } else {
-        // fall back to raw value or peer id
         out.add(val.toString());
       }
-      // добавляем peer id если адресов нет
       if ((val is List && val.isEmpty) || val == null) {
         out.add(key);
       }
@@ -176,8 +191,11 @@ class P2PService {
     return out;
   }
 
-  /// /connect
   Future<void> connectToPeer(String peerInfo) async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.connectToPeer(peerInfo);
+    }
+
     peerInfo = peerInfo.trim();
 
     if (peerInfo.startsWith('{')) {
@@ -200,296 +218,198 @@ class P2PService {
     throw Exception('Unknown peer format');
   }
 
-  Future<List<dynamic>> search(String q) async {
-    final r = await http
-        .get(Uri.parse('$httpBase/search?q=${Uri.encodeComponent(q)}'))
-        .timeout(const Duration(seconds: 3));
-
-    if (r.statusCode == 200) return jsonDecode(r.body);
-    throw Exception('search failed ${r.statusCode}');
-  }
-
-  Future<List<String>> searchProviders(String trackId,
-      {int max = 12}) async {
-    final r = await http
-        .get(Uri.parse(
-            '$httpBase/search_providers?id=${Uri.encodeComponent(trackId)}&max=$max'))
-        .timeout(const Duration(seconds: 6));
-    if (r.statusCode != 200) {
-      throw Exception('search_providers failed ${r.statusCode}');
+  Future<bool> connectByPeerInfoJson(String peerInfoJson) async {
+    if (useGrpc && _grpcService != null) {
+      await _grpcService!.connectToPeer(peerInfoJson);
+      return true;
     }
-    final data = jsonDecode(r.body) as List<dynamic>;
-    return data.map((e) => e.toString()).toList();
+
+    final j = jsonDecode(peerInfoJson) as Map<String, dynamic>;
+    final peerId = j['peerId'] ?? j['id'] as String?;
+    final addrs = j['addrs'] as List? ?? [];
+
+    if (peerId == null || peerId.isEmpty) return false;
+
+    for (final addr in addrs) {
+      try {
+        await connectToPeer(addr.toString());
+        return true;
+      } catch (_) {}
+    }
+    return false;
   }
 
-  Future<String> _fetchOnce(String peerId, String trackId) async {
+  Future<List<Map<String, dynamic>>> search(String query, {int max = 20}) async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.search(query, max: max);
+    }
+
     final r = await http
-        .get(Uri.parse(
-            '$httpBase/fetch?peer=${Uri.encodeComponent(peerId)}&id=${Uri.encodeComponent(trackId)}'))
-        .timeout(const Duration(seconds: 60));
+        .get(Uri.parse('$httpBase/search?q=${Uri.encodeComponent(query)}&max=$max'))
+        .timeout(const Duration(seconds: 10));
 
     if (r.statusCode != 200) {
-      throw Exception('fetch failed ${r.statusCode}');
+      throw Exception('search error ${r.statusCode}');
     }
 
     final j = jsonDecode(r.body) as Map<String, dynamic>;
-    return j['path'];
+    final results = j['results'] as List? ?? [];
+    return results.map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  Future<List<String>> searchProviders(String ctid, {int max = 12}) async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.searchProviders(ctid, max: max);
+    }
+
+    final r = await http
+        .get(Uri.parse('$httpBase/search_providers?id=${Uri.encodeComponent(ctid)}&max=$max'))
+        .timeout(const Duration(seconds: 5));
+
+    if (r.statusCode != 200) {
+      throw Exception('search_providers error ${r.statusCode}');
+    }
+
+    final j = jsonDecode(r.body) as Map<String, dynamic>;
+    return (j['provider_ids'] as List? ?? []).map((e) => e.toString()).toList();
   }
 
   Future<String> fetchFromNetwork(
-    String trackId, {
+    String ctid, {
     String? preferredPeer,
-    List<String>? providerAddrs,
-    int maxProviders = 12,
+    String outputPath = '',
+    int maxProviders = 5,
   }) async {
-    final seen = <String>{};
-    final candidates = <String>[];
-
-    void addCandidate(String s) {
-      final trimmed = s.trim();
-      if (trimmed.isEmpty) return;
-      if (seen.add(trimmed)) candidates.add(trimmed);
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.fetchFromNetwork(
+        ctid,
+        preferredPeer: preferredPeer,
+        outputPath: outputPath,
+        maxProviders: maxProviders,
+      );
     }
 
-    providerAddrs?.forEach(addCandidate);
-
-    if (candidates.length < maxProviders) {
-      try {
-        final fromNetwork = await searchProviders(trackId, max: maxProviders);
-        for (final a in fromNetwork) {
-          addCandidate(a);
-        }
-      } catch (_) {
-        // ignore - we'll try preferredPeer/DHT
+    if (preferredPeer == null || preferredPeer.isEmpty) {
+      final providers = await searchProviders(ctid, max: maxProviders);
+      if (providers.isEmpty) {
+        throw Exception('No providers found for CTID: $ctid');
       }
+      preferredPeer = providers.first;
     }
 
-    if (preferredPeer != null && preferredPeer.isNotEmpty) {
-      addCandidate(preferredPeer);
+    final uri = Uri.parse('$httpBase/fetch').replace(queryParameters: {
+      'peer': preferredPeer,
+      'id': ctid,
+      if (outputPath.isNotEmpty) 'output': outputPath,
+    });
+
+    final r = await http.get(uri).timeout(const Duration(seconds: 30));
+    if (r.statusCode != 200) {
+      throw Exception('fetch error ${r.statusCode}');
     }
 
-    for (final addr in candidates) {
-      String? peerId = _extractPeerId(addr);
-      if (addr.startsWith('/')) {
-        try {
-          await connectToPeer(addr).timeout(const Duration(seconds: 6));
-        } catch (_) {}
-      }
-      peerId ??= _extractPeerId(addr);
-      if (peerId == null || peerId.isEmpty) {
-        continue;
-      }
-      try {
-        final path = await _fetchOnce(peerId, trackId);
-        return path;
-      } catch (_) {
-        // try next provider
-      }
+    final j = jsonDecode(r.body) as Map<String, dynamic>;
+    final path = j['path'] as String?;
+    if (path == null || path.isEmpty) {
+      throw Exception('fetch failed: no path');
     }
-
-    // last chance: try preferred peer directly via DHT lookup
-    if (preferredPeer != null && preferredPeer.isNotEmpty) {
-      return _fetchOnce(preferredPeer, trackId);
-    }
-
-    throw Exception('fetch failed: no providers responded');
+    return path;
   }
 
-  // Deprecated compatibility shim
-  Future<String> fetch(String peerId, String trackId) =>
-      fetchFromNetwork(trackId, preferredPeer: peerId);
-
-  Future<String> shareTrack(
+  Future<void> shareTrack(
     String trackId,
     String path, {
     String? title,
     String? artist,
-    bool recognized = true,
+    bool recognized = false,
     String? checksum,
   }) async {
-    final r = await http
-        .post(
-          Uri.parse('$httpBase/share'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'id': trackId,
-            'path': path,
-            'title': title,
-            'artist': artist,
-            'recognized': recognized,
-            'checksum': checksum,
-          }),
-        )
-        .timeout(const Duration(seconds: 8));
-
-    if (r.statusCode != 200) {
-      throw Exception('share failed ${r.statusCode}');
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.shareTrack(
+        trackId,
+        path,
+        title: title,
+        artist: artist,
+        recognized: recognized,
+        checksum: checksum,
+      );
     }
 
-    final j = jsonDecode(r.body);
-    return j['path'];
+    final body = jsonEncode({
+      'track_id': trackId,
+      'path': path,
+      if (title != null) 'title': title,
+      if (artist != null) 'artist': artist,
+      'recognized': recognized,
+      if (checksum != null) 'checksum': checksum,
+    });
+
+    final r = await http
+        .post(Uri.parse('$httpBase/share'),
+            headers: {'Content-Type': 'application/json'}, body: body)
+        .timeout(const Duration(seconds: 10));
+
+    if (r.statusCode != 200 && r.statusCode != 204) {
+      throw Exception('share error ${r.statusCode}');
+    }
   }
 
   Future<void> announce() async {
-    final r = await http
-        .post(Uri.parse('$httpBase/announce'))
-        .timeout(const Duration(seconds: 3));
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.announce();
+    }
 
+    final r = await http.post(Uri.parse('$httpBase/announce')).timeout(const Duration(seconds: 5));
     if (r.statusCode != 200 && r.statusCode != 204) {
-      throw Exception('announce failed');
+      throw Exception('announce error ${r.statusCode}');
     }
-  }
-
-  /// ✅ УМНЫЙ CONNECT ЧЕРЕЗ JSON
-  Future<bool> connectByPeerInfoJson(
-      String peerinfoJson, {
-        Duration perAddrTimeout = const Duration(seconds: 4),
-      }) async {
-    final j = jsonDecode(peerinfoJson);
-    final peerId = j['peerId'];
-    final List addrs = j['addrs'] ?? [];
-    final List relayAddrs = j['relays'] ?? [];
-
-    if (peerId == null || peerId.toString().isEmpty) {
-      throw Exception('peerId missing');
-    }
-
-    final List<String> candidates = [
-      ...addrs.map((e) => e.toString()),
-      ...relayAddrs.map((e) => e.toString()),
-    ];
-
-    candidates.sort((a, b) {
-      final aRelay = a.contains('/p2p-circuit/');
-      final bRelay = b.contains('/p2p-circuit/');
-      if (aRelay && !bRelay) return -1;
-      if (!aRelay && bRelay) return 1;
-
-      final aLocal =
-          a.contains('127.0.0.1') || a.contains('0.0.0.0') || a.contains('::1');
-      final bLocal =
-          b.contains('127.0.0.1') || b.contains('0.0.0.0') || b.contains('::1');
-
-      if (aLocal && !bLocal) return 1;
-      if (!aLocal && bLocal) return -1;
-      return 0;
-    });
-
-    // ✅ 1️⃣ ПЫТАЕМСЯ ПОДКЛЮЧИТЬСЯ НАПРЯМУЮ / ЧЕРЕЗ RELAY ИЗ QR
-    for (final addr in candidates) {
-      try {
-        await connectToPeer(addr).timeout(perAddrTimeout);
-        await Future.delayed(const Duration(milliseconds: 300));
-        await announce().catchError((_) {});
-        return true;
-      } catch (_) {}
-    }
-
-    // ✅ 2️⃣ ЕСЛИ НЕ ПОЛУЧИЛОСЬ — ПРОСИМ СЕТЬ НАЙТИ RELAY
-    try {
-      final r = await http
-          .post(
-        Uri.parse('$httpBase/relay_request'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'target': peerId}),
-      )
-          .timeout(const Duration(seconds: 5));
-
-      if (r.statusCode == 200) {
-        final j = jsonDecode(r.body);
-        final relayAddr = j['relay'];
-
-        if (relayAddr != null && relayAddr.toString().isNotEmpty) {
-          try {
-            await connectToPeer(relayAddr.toString())
-                .timeout(const Duration(seconds: 5));
-            await Future.delayed(const Duration(milliseconds: 300));
-            await announce().catchError((_) {});
-            return true;
-          } catch (_) {}
-        }
-      }
-    } catch (_) {}
-
-    // ❌ Всё перепробовали — не удалось
-    return false;
-  }
-
-  Timer? _announceTimer;
-  Timer? _reconnectTimer;
-  Timer? _relayTimer;
-  bool _autoEnabled = false;
-
-  /// ✅ Включает автоживучесть сети
-  Future<void> enableAutoNetwork() async {
-    if (_autoEnabled) return;
-    _autoEnabled = true;
-
-    // 🔁 Переанонс
-    _announceTimer?.cancel();
-    _announceTimer = Timer.periodic(const Duration(minutes: 4), (_) async {
-      try { await announce(); } catch (_) {}
-    });
-
-    // 🔁 Автопереподключение
-    _reconnectTimer?.cancel();
-    _reconnectTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-      try {
-        final peers = await getKnownPeers();
-        for (final p in peers) {
-          try {
-            await connectToPeer(p).timeout(const Duration(seconds: 5));
-          } catch (_) {}
-        }
-      } catch (_) {}
-    });
-
-    // 🛜 Периодическая попытка стать relay
-    _relayTimer?.cancel();
-    _relayTimer = Timer.periodic(const Duration(minutes: 10), (_) async {
-      try { await promoteToRelay(); } catch (_) {}
-    });
-
-    // стартовые триггеры
-    try { await announce(); } catch (_) {}
-    try { await promoteToRelay(); } catch (_) {}
-  }
-
-  /// ✅ Стать relay
-  Future<void> promoteToRelay() async {
-    try {
-      await http.post(Uri.parse('$httpBase/relay/enable'))
-          .timeout(const Duration(seconds: 3));
-    } catch (_) {}
-  }
-
-  /// ❌ Выключить автосеть
-  void disableAutoNetwork() {
-    _announceTimer?.cancel();
-    _reconnectTimer?.cancel();
-    _relayTimer?.cancel();
-    _autoEnabled = false;
   }
 
   Future<List<String>> getRelays() async {
-    final r = await http
-        .get(Uri.parse('$httpBase/relays'))
-        .timeout(const Duration(seconds: 3));
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.getRelays();
+    }
+
+    final r = await http.get(Uri.parse('$httpBase/relays')).timeout(const Duration(seconds: 2));
     if (r.statusCode != 200) {
       throw Exception('relays error ${r.statusCode}');
     }
-    final data = jsonDecode(r.body) as List<dynamic>;
-    return data.map((e) => e.toString()).toList();
+
+    final j = jsonDecode(r.body) as Map<String, dynamic>;
+    return (j['relay_addresses'] as List? ?? []).map((e) => e.toString()).toList();
   }
 
-  String? _extractPeerId(String addr) {
-    if (addr.contains('/p2p/')) {
-      final parts = addr.split('/p2p/');
-      return parts.isNotEmpty ? parts.last.trim() : null;
+  Future<void> relayEnable() async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.relayEnable();
     }
-    if (addr.length > 10 && !addr.contains('/')) {
-      return addr;
+
+    final r = await http.post(Uri.parse('$httpBase/relay/enable')).timeout(const Duration(seconds: 5));
+    if (r.statusCode != 200 && r.statusCode != 204) {
+      throw Exception('relay/enable error ${r.statusCode}');
     }
-    return null;
+  }
+
+  Future<void> relayRequest(String peerId) async {
+    if (useGrpc && _grpcService != null) {
+      return await _grpcService!.relayRequest(peerId);
+    }
+
+    final body = jsonEncode({'peer_id': peerId});
+    final r = await http
+        .post(Uri.parse('$httpBase/relay_request'),
+            headers: {'Content-Type': 'application/json'}, body: body)
+        .timeout(const Duration(seconds: 5));
+
+    if (r.statusCode != 200 && r.statusCode != 204) {
+      throw Exception('relay_request error ${r.statusCode}');
+    }
+  }
+
+  Future<void> disconnect() async {
+    if (useGrpc && _grpcService != null) {
+      await _grpcService!.disconnect();
+    }
+    _started = false;
   }
 }

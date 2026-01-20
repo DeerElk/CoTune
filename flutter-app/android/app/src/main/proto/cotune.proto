@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package cotune;
+
+option go_package = "github.com/cotune/go-backend/api/proto";
+option java_package = "ru.apps78.cotune";
+option java_outer_classname = "CotuneProto";
+
+// CoTune IPC Protocol
+
+// Request messages
+message StatusRequest {}
+
+message PeerInfoRequest {
+  string format = 1; // "json" or "proto"
+}
+
+message ConnectRequest {
+  oneof target {
+    string multiaddr = 1;
+    PeerInfo peer_info = 2;
+  }
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 max_results = 2;
+}
+
+message SearchProvidersRequest {
+  string ctid = 1;
+  int32 max = 2;
+}
+
+message FetchRequest {
+  string ctid = 1;
+  string peer_id = 2; // optional, preferred peer
+  string output_path = 3;
+}
+
+message ShareRequest {
+  string track_id = 1;
+  string path = 2;
+  string title = 3;
+  string artist = 4;
+  bool recognized = 5;
+  string checksum = 6; // legacy, deprecated
+}
+
+message AnnounceRequest {}
+
+message RelaysRequest {}
+
+message RelayEnableRequest {}
+
+message RelayRequestRequest {
+  string peer_id = 1;
+}
+
+// Response messages
+message StatusResponse {
+  bool running = 1;
+  string version = 2;
+}
+
+message PeerInfo {
+  string peer_id = 1;
+  repeated string addresses = 2;
+}
+
+message PeerInfoResponse {
+  PeerInfo peer_info = 1;
+}
+
+message KnownPeersResponse {
+  repeated PeerInfo peers = 1;
+}
+
+message ConnectResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message SearchResult {
+  string ctid = 1;
+  string title = 2;
+  string artist = 3;
+  bool recognized = 4;
+  repeated string providers = 5;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+}
+
+message SearchProvidersResponse {
+  repeated string provider_ids = 1;
+}
+
+message FetchResponse {
+  bool success = 1;
+  string path = 2;
+  string error = 3;
+}
+
+message ShareResponse {
+  bool success = 1;
+  string path = 2;
+  string error = 3;
+}
+
+message AnnounceResponse {
+  bool success = 1;
+}
+
+message RelaysResponse {
+  repeated string relay_addresses = 1;
+}
+
+message RelayEnableResponse {
+  bool success = 1;
+}
+
+message RelayRequestResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Main IPC service
+service CotuneService {
+  rpc Status(StatusRequest) returns (StatusResponse);
+  rpc PeerInfo(PeerInfoRequest) returns (PeerInfoResponse);
+  rpc KnownPeers(StatusRequest) returns (KnownPeersResponse);
+  rpc Connect(ConnectRequest) returns (ConnectResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc SearchProviders(SearchProvidersRequest) returns (SearchProvidersResponse);
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+  rpc Share(ShareRequest) returns (ShareResponse);
+  rpc Announce(AnnounceRequest) returns (AnnounceResponse);
+  rpc Relays(RelaysRequest) returns (RelaysResponse);
+  rpc RelayEnable(RelayEnableRequest) returns (RelayEnableResponse);
+  rpc RelayRequest(RelayRequestRequest) returns (RelayRequestResponse);
+}

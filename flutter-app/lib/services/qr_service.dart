@@ -1,6 +1,5 @@
 // lib/services/qr_service.dart
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,10 +12,10 @@ class QRService {
 
   /// Возвращает виджет QR-кода для UI
   static Widget qrWidget(
-      String data, {
-        double size = 220,
-        EdgeInsets padding = const EdgeInsets.all(8),
-      }) {
+    String data, {
+    double size = 220,
+    EdgeInsets padding = const EdgeInsets.all(8),
+  }) {
     return Container(
       color: Colors.white,
       padding: padding,
@@ -31,9 +30,9 @@ class QRService {
 
   /// Рендерит QR в PNG-байты.
   static Future<Uint8List> renderQrToPngBytes(
-      String data, {
-        int size = 800,
-      }) async {
+    String data, {
+    int size = 800,
+  }) async {
     final painter = QrPainter(
       data: data,
       version: QrVersions.auto,
@@ -51,13 +50,14 @@ class QRService {
 
   /// Сохраняет PNG-файл во временную директорию и возвращает File.
   static Future<File> saveQrToTempFile(
-      String data, {
-        int size = 1000,
-        String filenamePrefix = 'cotune_qr',
-      }) async {
+    String data, {
+    int size = 1000,
+    String filenamePrefix = 'cotune_qr',
+  }) async {
     final bytes = await renderQrToPngBytes(data, size: size);
     final tmp = await getTemporaryDirectory();
-    final filename = '${filenamePrefix}_${DateTime.now().millisecondsSinceEpoch}.png';
+    final filename =
+        '${filenamePrefix}_${DateTime.now().millisecondsSinceEpoch}.png';
     final file = File('${tmp.path}/$filename');
     await file.writeAsBytes(bytes);
     return file;
@@ -66,10 +66,10 @@ class QRService {
   /// Поделиться QR-изображением + текстом.
   /// Fallback: если не удалось — пробует текст, затем копирует в буфер.
   static Future<void> shareQr(
-      BuildContext ctx,
-      String data, {
-        int size = 1000,
-      }) async {
+    BuildContext ctx,
+    String data, {
+    int size = 1000,
+  }) async {
     try {
       final file = await saveQrToTempFile(data, size: size);
       final xfile = XFile(file.path, mimeType: 'image/png');
@@ -84,7 +84,9 @@ class QRService {
         if (ctx.mounted) {
           ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(
-              content: Text('Не удалось поделиться — peer info скопирован в буфер'),
+              content: Text(
+                'Не удалось поделиться — peer info скопирован в буфер',
+              ),
             ),
           );
         }
@@ -94,15 +96,15 @@ class QRService {
 
   /// Копирует строку в буфер обмена и показывает Snackbar.
   static Future<void> copyToClipboard(
-      BuildContext ctx,
-      String data, {
-        String? successMessage,
-      }) async {
+    BuildContext ctx,
+    String data, {
+    String? successMessage,
+  }) async {
     await Clipboard.setData(ClipboardData(text: data));
     if (ctx.mounted) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(successMessage ?? 'Скопировано')),
-      );
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(SnackBar(content: Text(successMessage ?? 'Скопировано')));
     }
   }
 }

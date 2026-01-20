@@ -25,3 +25,7 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+plugins {
+    id("com.google.protobuf") version "0.9.6" apply false
+}

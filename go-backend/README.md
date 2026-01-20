@@ -1,56 +1,145 @@
-# Cotune P2P backend (Go + libp2p)
+# CoTune Go Backend
 
-Упрощённый децентрализованный аналог Tribler/Spotify: без серверов, без трекеров, без Tor/Onion, без экономики. Фронт на Flutter общается с Go-нодой через gomobile bind или HTTP API.
+Production-ready P2P backend для Android приложения CoTune.
 
 ## Архитектура
-- Каждый узел — полноценный peer libp2p: Host + Kademlia DHT + GossipSub.
-- Гибрид поиска провайдеров треков: быстрый кэш через PubSub (TrackMeta), глобальная гарантия через DHT `Provide/FindProviders`.
-- Чанки (файлы треков) лежат в `storagePath` (`<basePath>/tracks`).
-- Автоповышение до relay: если есть публичный адрес — включаем circuit v2 relay. Можно принудительно через `/relay/enable`.
-- Bootstrap: список из параметра, ENV `COTUNE_BOOTSTRAP`, сохранённых известных публичных/relay пиров, затем зашитый дефолт. QR/JSON на profile_screen передаёт эти multiaddr.
 
-## Основные Go API (gomobile/HTTP)
-Экспортируемые функции (gomobile): `StartNode(httpHostPort, listen, relaysCSV, basePath)`, `StopNode()`, `Status()`, `GetPeerInfoJson()`.
+- **libp2p Host**: Полноценный P2P узел с TCP, QUIC, Noise, Identify, AutoNAT, Hole Punching, Relay v2
+- **Kademlia DHT**: Распределенная хеш-таблица для provider records (без хранения данных)
+- **CTR (Canonical Track Resolution)**: Вычисление CTID из нормализованного PCM аудио
+- **Search Service**: Поиск по токенам без flooding
+- **Streaming Service**: Chunk-based аудио стриминг
+- **Protobuf/gRPC IPC**: IPC сервер для Flutter/Kotlin bridge (localhost TCP или Unix socket)
 
-HTTP endpoints (локально на `httpHostPort`):
-- `GET /status` — состояние ноды.
-- `GET /peerinfo` — peerId + addrs (для QR/clipboard).
-- `GET /known_peers` — сохранённые адреса.
-- `GET /relays` — актуальные публичные/relay адреса (для QR/clipboard).
-- `POST /connect` — тело: multiaddr строка или JSON `{peerId, addrs}`; подключение к узлу.
-- `POST /relay/enable` — принудительно включить relay.
-- `POST /share` — `{id, path, title, artist, checksum, recognized?}`: копирует файл внутрь, сохраняет метаданные, рассылает через PubSub и `Provide` в DHT.
-- `POST /tag` — `{id, title?, artist?, checksum?, recognized?}`: обновить/подписать уже загруженный трек без повторной загрузки файла и переобъявить его.
-- `GET /search?q=` — локальный поиск по загруженным метаданным (включая полученные по PubSub).
-- `GET /search_providers?id=&max=` — вернуть адреса провайдеров (кэш из PubSub/хранилища, затем DHT).
-- `GET /fetch?peer=&id=` — скачать трек у пира.
-- `POST /like` — `{peer,id}`: скачать, добавить в свою библиотеку, переобъявить (репликация).
-- `POST /announce` — переобъявить все локальные треки.
-- `POST /relay_request` — найти известный relay (best-effort).
+## Сборка
 
-## Потоки данных
-1. Добавление трека (`/share` или gomobile-обёртка): копия в `storagePath`, метаданные в BoltDB, PubSub публикация, DHT Provide.
-2. Получение метаданных: подписка GossipSub `cotune:tracks` → локальный кэш ProviderAddrs в BoltDB.
-3. Поиск: UI отправляет `/search` (локальный индекс) и `/search_providers` для конкретного trackID — сначала кэш, затем DHT.
-4. Стрим: `/fetch` открывает libp2p stream `/cotune/file/1.0.0`, читает header+байты, кладёт в `storagePath`, сохраняет meta и re-announce.
-5. Репликация/лайк: `/like` скачивает и объявляет трек, повышая доступность.
-6. Дедуп/качество: merge правил в `storage.MergeAndSaveTrackMeta`: признаёт recognized версии, предпочитает больший размер (битрейт), объединяет провайдеров.
+### Для Linux/разработки
 
-## Сборка Android .aar
-Требуется gomobile и NDK. Пример для Windows/PowerShell:
-```
-$env:ANDROID_NDK_HOME="C:\Users\<you>\AppData\Local\Android\Sdk\ndk\21.4.7075529"
-gomobile bind -target=android -ldflags="-checklinkname=0" -o cotune.aar ./...
+```bash
+cd go-backend
+go mod download
+
+# Генерация protobuf кода
+./generate_proto.sh  # Linux/macOS
+# или
+generate_proto.bat   # Windows
+
+# Сборка daemon
+go build -o cotune-daemon ./cmd/daemon
 ```
 
-## Минимальные настройки фронта (Flutter)
-- При старте: вызвать `StartNode("127.0.0.1:48080", "/ip4/0.0.0.0/tcp/0", "<bootstrap_multiaddr>", "<app_data>/cotune")`.
-- Для bootstrap через QR/clipboard: сериализовать `peerinfo` или список из `/relays`, передавать в `connect`.
-- При добавлении/лайке: сначала положить файл во временное место, затем `/share` или `/like`.
-- Для поиска: `/search?q=...` → список мета; для проигрывания выбрать trackID, вызвать `/search_providers` (опционально) и затем `/fetch?peer=<peer>&id=<id>`; реализовать параллельное скачивание с нескольких пиров на стороне Flutter плеера (по аналогии с торрент).
+### Для Android
 
-## Безопасность и ограничения
-- Нет регистрации/авторизации; данные публичны в сети.
-- Ограничение размера файла: upload 300 MiB, fetch 350 MiB.
-- Нет Tor/onion, нет токенов/экономики, нет TrustChain.
+Сборка Go бинарника для Android:
 
+```bash
+# Linux/macOS
+./build_android.sh
+
+# Windows
+build_android.bat
+```
+
+Бинарники автоматически копируются в `../flutter-app/android/app/src/main/jniLibs/<arch>/cotune-daemon`.
+
+Архитектуры: `arm64-v8a`, `armeabi-v7a`, `x86_64`
+
+## Запуск
+
+```bash
+./cotune-daemon \
+  -proto 127.0.0.1:7777 \
+  -listen /ip4/0.0.0.0/tcp/0 \
+  -data ./cotune_data \
+  -bootstrap /ip4/BOOTSTRAP_IP/tcp/BOOTSTRAP_PORT/p2p/BOOTSTRAP_PEER_ID \
+  -relay=false
+```
+
+Флаги:
+- `-proto`: Адрес Protobuf/gRPC сервера (localhost TCP или Unix socket путь)
+- `-listen`: libp2p listen адрес
+- `-data`: Директория для данных
+- `-bootstrap`: Опциональный bootstrap peer (multiaddr)
+- `-relay`: Включить relay service
+
+## Protobuf/gRPC API
+
+Протокол определен в `api/cotune.proto`. Основные методы:
+
+- `Status()` — Проверка статуса daemon
+- `PeerInfo()` — Информация о пире (ID, адреса)
+- `KnownPeers()` — Список известных пиров
+- `Connect()` — Подключение к пиру (multiaddr или peer info)
+- `Search()` — Поиск треков по запросу
+- `SearchProviders()` — Поиск провайдеров для CTID
+- `Fetch()` — Скачивание трека из сети
+- `Share()` — Раздача трека (объявление в DHT)
+- `Announce()` — Ручное объявление (автоматически происходит каждые 4 минуты)
+- `Relays()` — Список relay адресов
+- `RelayEnable()` — Включить relay service
+- `RelayRequest()` — Запрос relay соединения
+
+## CTR (Canonical Track Resolution)
+
+CTR вычисляет Canonical Track ID (CTID) из аудиофайлов:
+
+1. Декодирование аудио в PCM (44.1kHz, 16-bit, mono)
+2. Нормализация PCM сэмплов
+3. Вычисление SHA256 хеша → CTID
+
+CTID **не зависит от**:
+- Битрейта
+- Кодека (MP3, AAC, OGG, FLAC, WAV и т.д.)
+- Контейнера
+
+Поддерживаемые форматы: MP3, WAV (нативные), FLAC, AAC, OGG, M4A (через FFmpeg fallback).
+
+## DHT Provider Records
+
+В DHT хранятся **ТОЛЬКО** provider records:
+- Key: `/ctid/<CTID>`
+- Value: PeerID
+- TTL: 24 часа (автообновление)
+
+❌ **Запрещено**: аудиофайлы, метаданные, текстовые индексы
+
+## Поиск без Flood
+
+1. Токенизация запроса (разделение по пробелам/знакам препинания)
+2. Для каждого токена:
+   - Хеширование токена → token hash
+   - `FindProviders(/token/<token_hash>)` → получение пиров с этим токеном
+   - Запрос локальных индексов у пиров через протокол `/cotune/index/1.0.0` → получение CTID
+3. Для каждого CTID:
+   - `FindProviders(/ctid/<CTID>)` → получение адресов пиров
+4. Возврат результатов с информацией о провайдерах
+
+## Streaming Protocol
+
+Chunk-based streaming через libp2p streams:
+- Протокол: `/cotune/stream/1.0.0`
+- Размер чанка: 64KB
+- Формат: [4 bytes length][JSON chunk data]
+- Автоматическое переключение между провайдерами при ошибках
+
+## Репликация
+
+Репликация происходит **ТОЛЬКО** по действию пользователя (лайк):
+1. Пользователь нажал "лайк"
+2. Трек полностью скачивается (если удаленный)
+3. Сохраняется локально
+4. Устройство начинает раздавать: `Provide(/ctid/<CTID>)`
+
+Никакой принудительной репликации нет.
+
+## Структура пакетов
+
+- `internal/host/` — libp2p host с полным стеком протоколов
+- `internal/dht/` — Kademlia DHT сервис
+- `internal/ctr/` — Canonical Track Resolution pipeline
+- `internal/search/` — Поиск по токенам с протоколом запроса индексов
+- `internal/streaming/` — Chunk-based streaming сервис
+- `internal/storage/` — Локальное хранилище (BadgerDB)
+- `internal/daemon/` — Главный координатор всех сервисов
+- `internal/api/proto/` — Protobuf/gRPC IPC сервер
+- `api/` — Protobuf схема (`cotune.proto`)

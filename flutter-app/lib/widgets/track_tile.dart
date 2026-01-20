@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'package:cotune_mobile/screens/folder_screen.dart';
 import 'package:cotune_mobile/widgets/modal.dart';
@@ -21,7 +22,7 @@ import '../services/audio_player_service.dart';
 class TrackTile extends StatelessWidget {
   final Track track;
 
-  const TrackTile({Key? key, required this.track}) : super(key: key);
+  const TrackTile({super.key, required this.track});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +60,7 @@ class TrackTile extends StatelessWidget {
                     track.title.isNotEmpty ? track.title : 'Без названия',
                     style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -86,16 +87,64 @@ class TrackTile extends StatelessWidget {
               ),
               onPressed: () async {
                 track.liked = !track.liked;
+
+                // If liking a remote track (has CTID but file doesn't exist locally), download it first
+                if (track.liked &&
+                    track.ctid != null &&
+                    track.ctid!.isNotEmpty) {
+                  final file = File(track.path);
+                  if (!await file.exists() || track.path.isEmpty) {
+                    // Remote track needs to be downloaded
+                    try {
+                      final p2p = P2PService();
+                      final providers = await p2p.searchProviders(
+                        track.ctid!,
+                        max: 5,
+                      );
+
+                      if (providers.isNotEmpty) {
+                        // Download track
+                        final appDir = await getApplicationDocumentsDirectory();
+                        final tracksDir = Directory(
+                          '${appDir.path}/cotune_tracks',
+                        );
+                        if (!await tracksDir.exists()) {
+                          await tracksDir.create(recursive: true);
+                        }
+                        final outputPath = '${tracksDir.path}/${track.id}.mp3';
+
+                        final downloadedPath = await p2p.fetchFromNetwork(
+                          track.ctid!,
+                          preferredPeer: providers.first,
+                          outputPath: outputPath,
+                          maxProviders: 5,
+                        );
+
+                        if (downloadedPath.isNotEmpty) {
+                          track.path = downloadedPath;
+                        }
+                      }
+                    } catch (e) {
+                      // If download fails, still update liked status
+                      debugPrint('Failed to download remote track: $e');
+                    }
+                  }
+                }
+
                 await storage.updateTrack(track);
                 if (track.liked) {
-                  await P2PService().shareTrack(
-                    track.id,
-                    track.path,
-                    title: track.title,
-                    artist: track.artist,
-                    recognized: track.recognized,
-                    checksum: track.checksum,
-                  );
+                  // Only share if file exists
+                  final file = File(track.path);
+                  if (await file.exists()) {
+                    await P2PService().shareTrack(
+                      track.id,
+                      track.path,
+                      title: track.title,
+                      artist: track.artist,
+                      recognized: track.recognized,
+                      checksum: track.checksum,
+                    );
+                  }
                 }
               },
             ),
@@ -115,8 +164,10 @@ class TrackTile extends StatelessWidget {
     OptionSheet.show(context, [
       ListTile(
         leading: Icon(Icons.playlist_add, color: theme.colorScheme.primary),
-        title: Text('Добавить в плейлист',
-            style: GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        title: Text(
+          'Добавить в плейлист',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           _addToPlaylist(context);
@@ -124,8 +175,10 @@ class TrackTile extends StatelessWidget {
       ),
       ListTile(
         leading: Icon(Icons.save_alt, color: theme.colorScheme.primary),
-        title: Text('Сохранить в файлы',
-            style: GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        title: Text(
+          'Сохранить в файлы',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           _saveToFiles(context, track.path);
@@ -133,17 +186,17 @@ class TrackTile extends StatelessWidget {
       ),
       ListTile(
         leading: Icon(Icons.person, color: theme.colorScheme.primary),
-        title: Text('Перейти к артисту',
-            style: GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+        title: Text(
+          'Перейти к артисту',
+          style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+        ),
         onTap: () {
           Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => FolderScreen(
-                type: FolderType.artist,
-                idOrName: track.artist,
-              ),
+              builder: (_) =>
+                  FolderScreen(type: FolderType.artist, idOrName: track.artist),
             ),
           );
         },
@@ -151,9 +204,10 @@ class TrackTile extends StatelessWidget {
       if (!track.recognized)
         ListTile(
           leading: Icon(Icons.edit, color: theme.colorScheme.primary),
-          title: Text('Подписать вручную',
-              style:
-              GoogleFonts.inter(color: theme.colorScheme.onBackground)),
+          title: Text(
+            'Подписать вручную',
+            style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
+          ),
           onTap: () {
             Navigator.pop(context);
             _manualTag(context);
@@ -162,12 +216,15 @@ class TrackTile extends StatelessWidget {
     ]);
   }
 
-
-  Future<void> _addToPlaylist(BuildContext ctx, { bool singleSelect = false }) async {
+  Future<void> _addToPlaylist(
+    BuildContext ctx, {
+    bool singleSelect = false,
+  }) async {
     final storage = Provider.of<StorageService>(ctx, listen: false);
     List<PlaylistModel> playlists = storage.allPlaylists();
 
-    final result = await showCotuneModal<List<String>?>( // -> List<Widget> Function(BuildContext)
+    final result = await showCotuneModal<List<String>?>(
+      // -> List<Widget> Function(BuildContext)
       ctx,
       title: 'Добавить в плейлист',
       builder: (bctx) {
@@ -175,56 +232,63 @@ class TrackTile extends StatelessWidget {
         final selected = <String>{};
 
         return [
-          StatefulBuilder(builder: (sbCtx, setSb) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(ctx).size.height * 0.18,
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: playlists.length,
-                    itemBuilder: (_, i) {
-                      final p = playlists[i];
-                      final sel = selected.contains(p.id);
-                      return CheckboxListTile(
-                        value: sel,
-                        onChanged: (v) {
-                          setSb(() {
-                            if (singleSelect) {
-                              // single select: если включили — очищаем и ставим; если выключили — убираем
-                              if (v == true) {
-                                selected
-                                  ..clear()
-                                  ..add(p.id);
+          StatefulBuilder(
+            builder: (sbCtx, setSb) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.18,
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: playlists.length,
+                      itemBuilder: (_, i) {
+                        final p = playlists[i];
+                        final sel = selected.contains(p.id);
+                        return CheckboxListTile(
+                          value: sel,
+                          onChanged: (v) {
+                            setSb(() {
+                              if (singleSelect) {
+                                // single select: если включили — очищаем и ставим; если выключили — убираем
+                                if (v == true) {
+                                  selected
+                                    ..clear()
+                                    ..add(p.id);
+                                } else {
+                                  selected.remove(p.id);
+                                }
                               } else {
-                                selected.remove(p.id);
+                                if (v == true) {
+                                  selected.add(p.id);
+                                } else {
+                                  selected.remove(p.id);
+                                }
                               }
-                            } else {
-                              if (v == true) selected.add(p.id);
-                              else selected.remove(p.id);
-                            }
-                          });
-                        },
-                        title: Text(
-                          p.name,
-                          style: TextStyle(color: Theme.of(sbCtx).colorScheme.onSurface),
-                        ),
-                      );
-                    },
+                            });
+                          },
+                          title: Text(
+                            p.name,
+                            style: TextStyle(
+                              color: Theme.of(sbCtx).colorScheme.onSurface,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                CotuneModalActions(
-                  onCancel: () => Navigator.of(bctx).pop(<String>[]),
-                  onConfirm: () => Navigator.of(bctx).pop(selected.toList()),
-                  confirmLabel: 'Добавить',
-                ),
-              ],
-            );
-          }),
+                  const SizedBox(height: 12),
+                  CotuneModalActions(
+                    onCancel: () => Navigator.of(bctx).pop(<String>[]),
+                    onConfirm: () => Navigator.of(bctx).pop(selected.toList()),
+                    confirmLabel: 'Добавить',
+                  ),
+                ],
+              );
+            },
+          ),
         ];
       },
     );
@@ -238,7 +302,9 @@ class TrackTile extends StatelessWidget {
           await storage.savePlaylist(pl);
         }
       }
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Трек(и) добавлены в плейлисты')));
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('Трек(и) добавлены в плейлисты')),
+      );
     }
   }
 
@@ -256,9 +322,15 @@ class TrackTile extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: titleCtl, decoration: const InputDecoration(labelText: 'Название')),
+              TextField(
+                controller: titleCtl,
+                decoration: const InputDecoration(labelText: 'Название'),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: artistCtl, decoration: const InputDecoration(labelText: 'Исполнитель')),
+              TextField(
+                controller: artistCtl,
+                decoration: const InputDecoration(labelText: 'Исполнитель'),
+              ),
               const SizedBox(height: 12),
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
@@ -286,7 +358,9 @@ class TrackTile extends StatelessWidget {
           checksum: track.checksum,
         );
       } catch (_) {}
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Данные трека обновлены')));
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(const SnackBar(content: Text('Данные трека обновлены')));
     }
   }
 
