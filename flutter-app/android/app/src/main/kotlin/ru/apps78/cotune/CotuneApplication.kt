@@ -13,6 +13,10 @@ class CotuneApplication : Application() {
 
         // Initialize Flutter engine
         flutterEngine = FlutterEngine(this)
+        
+        // Register custom plugins
+        flutterEngine.plugins.add(CotuneNodePlugin())
+        
         flutterEngine.dartExecutor.executeDartEntrypoint(
             DartExecutor.DartEntrypoint.createDefault()
         )

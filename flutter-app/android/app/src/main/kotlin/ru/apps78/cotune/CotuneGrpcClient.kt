@@ -40,10 +40,10 @@ class CotuneGrpcClient(private val address: String = "127.0.0.1:7777") {
                 val stubClass = Class.forName("ru.apps78.cotune.CotuneServiceGrpc")
                 val newStubMethod = stubClass.getMethod("newStub", io.grpc.Channel::class.java)
                 stub = newStubMethod.invoke(null, channel)
-            } catch (e: ClassNotFoundException) {
+            } catch (_: ClassNotFoundException) {
                 // Generated code not available yet - will be available after build
                 stub = null
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Other error
                 stub = null
             }
@@ -63,18 +63,18 @@ class CotuneGrpcClient(private val address: String = "127.0.0.1:7777") {
             // Try to call status via reflection
             try {
                 val statusMethod = stub!!::class.java.getMethod("status", 
-                    Class.forName("ru.apps78.cotune.CotuneProto\$StatusRequest"))
-                val requestClass = Class.forName("ru.apps78.cotune.CotuneProto\$StatusRequest")
+                    Class.forName($$"ru.apps78.cotune.CotuneProto$StatusRequest"))
+                val requestClass = Class.forName($$"ru.apps78.cotune.CotuneProto$StatusRequest")
                 val request = requestClass.getMethod("getDefaultInstance").invoke(null)
                 val response = statusMethod.invoke(stub, request)
                 val runningMethod = response!!::class.java.getMethod("getRunning")
                 return@withContext runningMethod.invoke(response) as Boolean
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Generated code not available or reflection failed
                 // Fallback: check if channel is ready
                 return@withContext !channel!!.isShutdown
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -92,8 +92,8 @@ class CotuneGrpcClient(private val address: String = "127.0.0.1:7777") {
             // Try to call peerInfo via reflection
             try {
                 val peerInfoMethod = stub!!::class.java.getMethod("peerInfo",
-                    Class.forName("ru.apps78.cotune.CotuneProto\$PeerInfoRequest"))
-                val requestBuilderClass = Class.forName("ru.apps78.cotune.CotuneProto\$PeerInfoRequest\$Builder")
+                    Class.forName($$"ru.apps78.cotune.CotuneProto$PeerInfoRequest"))
+                val requestBuilderClass = Class.forName($$"ru.apps78.cotune.CotuneProto$PeerInfoRequest$Builder")
                 val builder = requestBuilderClass.getMethod("newBuilder").invoke(null)
                 requestBuilderClass.getMethod("setFormat", String::class.java).invoke(builder, "json")
                 val request = requestBuilderClass.getMethod("build").invoke(builder)
@@ -108,11 +108,11 @@ class CotuneGrpcClient(private val address: String = "127.0.0.1:7777") {
                     "peer_id" to peerId,
                     "addresses" to addresses.filterIsInstance<String>()
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Generated code not available or error
                 return@withContext emptyMap()
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyMap()
         }
     }

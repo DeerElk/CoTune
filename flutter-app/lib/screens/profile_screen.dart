@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../l10n/app_localizations.dart';
-import '../services/p2p_service.dart';
+import '../services/p2p_grpc_service.dart';
 import '../services/qr_service.dart';
 import '../theme.dart';
 import '../app.dart';
@@ -37,7 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _loading = true;
     });
     try {
-      final p2p = Provider.of<P2PService>(context, listen: false);
+      final p2p = Provider.of<P2PGrpcService>(context, listen: false);
       try {
         // Получаем путь к директории приложения для хранения данных
         final appDir = await getApplicationDocumentsDirectory();
@@ -87,11 +87,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (result != null && result is String) {
       try {
-        await Provider.of<P2PService>(
+        await Provider.of<P2PGrpcService>(
           context,
           listen: false,
         ).connectToPeer(result);
-        final hosts = await Provider.of<P2PService>(
+        final hosts = await Provider.of<P2PGrpcService>(
           context,
           listen: false,
         ).getKnownPeers().catchError((_) => <String>[]);
@@ -139,11 +139,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final txt = ctl.text.trim();
                   if (txt.isNotEmpty) {
                     try {
-                      await Provider.of<P2PService>(
+                      await Provider.of<P2PGrpcService>(
                         context,
                         listen: false,
                       ).connectToPeer(txt);
-                      final hosts = await Provider.of<P2PService>(
+                      final hosts = await Provider.of<P2PGrpcService>(
                         context,
                         listen: false,
                       ).getKnownPeers().catchError((_) => <String>[]);

@@ -2,6 +2,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:grpc/grpc.dart';
 import '../generated/cotune.pbgrpc.dart';
 import '../generated/cotune.pb.dart' as pb;
@@ -262,6 +264,13 @@ class P2PGrpcService {
   }
 
   /// Ensure node is running (compatibility with P2PService)
+  ///
+  /// According to architecture:
+  /// 1. Flutter calls ensureNodeRunning()
+  /// 2. Kotlin bridge starts Go daemon via CotuneNodePlugin
+  /// 3. Go daemon initializes all services
+  ///
+  /// This method ensures the daemon is started and ready to accept connections.
   Future<void> ensureNodeRunning({
     String? proto,
     String? http,
@@ -270,9 +279,34 @@ class P2PGrpcService {
     String? basePath,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    // Address will be used from constructor
-    // The node should already be started by Kotlin bridge
-    // Just check status
+    const platform = MethodChannel('cotune_node');
+
+    // Start the node via Kotlin bridge (CotuneNodePlugin.startNode)
+    // This launches the Go daemon process and waits for it to be ready
+    try {
+      final protoAddr = proto ?? http ?? address;
+      final result = await platform.invokeMethod('startNode', {
+        'proto': protoAddr,
+        'listen': listen,
+        'relays': relays,
+        'basePath': basePath,
+      });
+
+      if (result != 'started') {
+        throw Exception('Failed to start node: $result');
+      }
+    } catch (e) {
+      // If node is already running, that's fine
+      // We'll check status below
+      if (!e.toString().contains('already') &&
+          !e.toString().contains('started')) {
+        debugPrint(
+          'Warning: startNode returned error (may be already running): $e',
+        );
+      }
+    }
+
+    // Wait for node to be ready
     final end = DateTime.now().add(timeout);
     Exception? lastError;
     while (DateTime.now().isBefore(end)) {

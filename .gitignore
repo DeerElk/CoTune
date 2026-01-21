@@ -28,7 +28,6 @@ bootstrap.key
 bootstrap/*.env
 bootstrap.env
 !bootstrap/*.example.env
-cotune-bootstrap
 
 # gomobile
 *.aar
@@ -41,3 +40,23 @@ cotune-daemon
 *.keystore
 *.jks
 .env
+
+# Binaries
+cotune-bootstrap
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+go-backend/vendor/
+
+# Go workspace file
+go.work

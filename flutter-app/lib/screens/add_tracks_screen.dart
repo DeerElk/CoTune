@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:cotune_mobile/services/p2p_service.dart';
+import 'package:cotune_mobile/services/p2p_grpc_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:file_picker/file_picker.dart';
@@ -62,7 +62,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
     setState(() => loading = true);
 
     final storage = Provider.of<StorageService>(context, listen: false);
-    final p2p = Provider.of<P2PService>(context, listen: false);
+    final p2p = Provider.of<P2PGrpcService>(context, listen: false);
 
     final errors = <String>[];
 

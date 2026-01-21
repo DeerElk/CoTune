@@ -1,5 +1,5 @@
 import 'package:cotune_mobile/screens/profile_screen.dart';
-import 'package:cotune_mobile/services/p2p_service.dart';
+import 'package:cotune_mobile/services/p2p_grpc_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -45,7 +45,7 @@ class CotuneApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppSettings()),
         Provider(
           create: (_) {
-            final p2p = P2PService();
+            final p2p = P2PGrpcService();
             return p2p;
           },
         ),

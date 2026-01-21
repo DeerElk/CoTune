@@ -27,7 +27,14 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
-        stopNode()
+        // stopNode() is suspend, so invoke it from our IO coroutine scope
+        scope.launch {
+            try {
+                stopNode()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping node on detach", e)
+            }
+        }
         scope.cancel()
     }
 
@@ -101,8 +108,23 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         command.add(listen)
         command.add("-data")
         command.add(dataDir)
+        
+        // Add bootstrap peer with stable peer ID
+        // Bootstrap peer: 84.201.172.91:4001
+        val bootstrapAddrs = listOf(
+            "/ip4/84.201.172.91/udp/4001/quic-v1/p2p/12D3KooWPg8PavCBcMzooYYHbnoEN5YttQng3YGABvVwkbM5gvPb",
+            "/ip4/84.201.172.91/tcp/4001/p2p/12D3KooWPg8PavCBcMzooYYHbnoEN5YttQng3YGABvVwkbM5gvPb"
+        )
+        
+        for (addr in bootstrapAddrs) {
+            command.add("-bootstrap")
+            command.add(addr)
+        }
+        
+        
         if (relays.isNotEmpty()) {
-            // Handle relays if needed
+            // TODO: pass relay bootstrap addresses to the daemon when relay support is wired through
+            Log.w(TAG, "Relays parameter is not yet supported, ignoring: $relays")
         }
 
         Log.d(TAG, "Starting daemon: ${command.joinToString(" ")}")

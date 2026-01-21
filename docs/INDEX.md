@@ -27,20 +27,15 @@
    - Статус реализации
    - Известные ограничения
 
-5. **[Known Issues](KNOWN_ISSUES.md)** - Известные проблемы
-   - libp2p webtransport
-   - FFmpeg зависимости
-   - Проблемы сборки
-
-6. **[Migration Guide](MIGRATION_PROTOBUF.md)** - Миграция на Protobuf
+5. **[Migration Guide](MIGRATION_PROTOBUF.md)** - Миграция на Protobuf
    - Статус миграции
    - Инструкции для Kotlin
    - Инструкции для Dart
 
 ## Отчеты и статусы
 
-7. **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Сводка реализации
-8. **[Final Status](FINAL_STATUS_2024.md)** - Финальный статус проекта (100% соответствие ТЗ)
+6. **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Сводка реализации
+7. **[Final Status](FINAL_STATUS_2024.md)** - Финальный статус проекта (100% соответствие ТЗ)
 
 ## Быстрая навигация
 

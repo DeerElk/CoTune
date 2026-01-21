@@ -1,0 +1,38 @@
+[Unit]
+Description=CoTune Bootstrap Peer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Запуск бинаря
+ExecStart=/opt/cotune/cotune-bootstrap \
+  -listen /ip4/0.0.0.0/tcp/4001,/ip4/0.0.0.0/udp/4001/quic-v1 \
+  -key /var/lib/cotune-bootstrap/bootstrap.key
+
+# Рабочая директория
+WorkingDirectory=/opt/cotune
+
+# Автоперезапуск
+Restart=always
+RestartSec=3
+
+# НЕ ограничивать ресурсы
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+
+# systemd не будет убивать процесс по памяти
+OOMScoreAdjust=-1000
+
+# Логи в journalctl
+StandardOutput=journal
+StandardError=journal
+
+# Безопасность (минимальная, не мешает libp2p)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

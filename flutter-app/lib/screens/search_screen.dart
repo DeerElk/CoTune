@@ -1,5 +1,5 @@
 import 'package:cotune_mobile/screens/folder_screen.dart';
-import 'package:cotune_mobile/services/p2p_service.dart';
+import 'package:cotune_mobile/services/p2p_grpc_service.dart';
 import 'package:cotune_mobile/widgets/folder_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -57,7 +57,7 @@ class _SearchScreenState extends State<SearchScreen> {
       remoteLoading = true;
       remoteResults = [];
     });
-    final p2p = Provider.of<P2PService>(context, listen: false);
+    final p2p = Provider.of<P2PGrpcService>(context, listen: false);
     try {
       final res = await p2p.search(q);
       setState(() {
@@ -212,7 +212,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _downloadRemote(Map<String, dynamic> item) async {
-    final p2p = Provider.of<P2PService>(context, listen: false);
+    final p2p = Provider.of<P2PGrpcService>(context, listen: false);
     final storage = Provider.of<StorageService>(context, listen: false);
     final trackId = item['id'] as String? ?? '';
     final peerId = item['owner'] as String? ?? '';

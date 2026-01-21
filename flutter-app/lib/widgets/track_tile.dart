@@ -14,7 +14,7 @@ import 'package:path/path.dart' as p;
 import '../models/track.dart';
 import '../models/playlist.dart';
 import '../services/storage_service.dart';
-import '../services/p2p_service.dart';
+import '../services/p2p_grpc_service.dart';
 import '../theme.dart';
 import '../screens/player_fullscreen.dart';
 import '../services/audio_player_service.dart';
@@ -96,7 +96,7 @@ class TrackTile extends StatelessWidget {
                   if (!await file.exists() || track.path.isEmpty) {
                     // Remote track needs to be downloaded
                     try {
-                      final p2p = P2PService();
+                      final p2p = P2PGrpcService();
                       final providers = await p2p.searchProviders(
                         track.ctid!,
                         max: 5,
@@ -136,7 +136,7 @@ class TrackTile extends StatelessWidget {
                   // Only share if file exists
                   final file = File(track.path);
                   if (await file.exists()) {
-                    await P2PService().shareTrack(
+                    await P2PGrpcService().shareTrack(
                       track.id,
                       track.path,
                       title: track.title,
@@ -349,7 +349,7 @@ class TrackTile extends StatelessWidget {
       track.recognized = true;
       await storage.updateTrack(track);
       try {
-        await P2PService().shareTrack(
+        await P2PGrpcService().shareTrack(
           track.id,
           track.path,
           title: track.title,
