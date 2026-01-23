@@ -35,16 +35,15 @@ android {
         }
     }
 
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDir("src/main/jniLibs")
+        }
+    }
+
     packaging {
         jniLibs {
-            // Поддержка 16KB page size для Android 15+
-            useLegacyPackaging = false
-            // Поддержка Go daemon бинарника
-            pickFirsts += listOf("**/cotune-daemon")
-        }
-        // Подавляем предупреждения о 16KB page size для библиотек, которые будут пересобраны
-        resources {
-            excludes += listOf("META-INF/DEPENDENCIES", "META-INF/LICENSE")
+            useLegacyPackaging = true
         }
     }
 

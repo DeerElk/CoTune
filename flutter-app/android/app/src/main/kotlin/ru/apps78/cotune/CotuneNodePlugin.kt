@@ -223,16 +223,40 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     private fun findGoBinary(): String? {
-        // Find Go daemon binary in native library directory
-        // The daemon is built as an executable binary, not a shared library
-        val nativeLibDir = context.applicationInfo.nativeLibraryDir
-        val binaryPath = File(nativeLibDir, "cotune-daemon")
-        
-        return if (binaryPath.exists() && binaryPath.canExecute()) {
-            binaryPath.absolutePath
-        } else {
-            null
+
+        val libDirPath = context.applicationInfo.nativeLibraryDir
+        val libDir = File(libDirPath)
+
+        // ИМЯ ДОЛЖНО СОВПАДАТЬ С APK
+        val daemon = File(libDir, "cotune-daemon.so")
+
+        if (!daemon.exists()) {
+            Log.e(
+                TAG,
+                "Go daemon not found in nativeLibraryDir: ${daemon.absolutePath}\n" +
+                        "Files there: ${libDir.list()?.joinToString()}"
+            )
+            return null
         }
+
+        if (daemon.length() <= 0L) {
+            Log.e(
+                TAG,
+                "Go daemon is empty or corrupted: ${daemon.absolutePath}"
+            )
+            return null
+        }
+
+        Log.i(
+            TAG,
+            "Go daemon ready (APK-native): " +
+                    "path=${daemon.absolutePath}, " +
+                    "size=${daemon.length()}, " +
+                    "canExec=${daemon.canExecute()}, " +
+                    "libDir=$libDirPath"
+        )
+
+        return daemon.absolutePath
     }
 
     companion object {

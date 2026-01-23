@@ -35,6 +35,7 @@ bootstrap.env
 
 #jni
 cotune-daemon
+.so
 
 # Secrets
 *.keystore

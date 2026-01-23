@@ -18,6 +18,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
+        android:extractNativeLibs="true"
         android:enableOnBackInvokedCallback="true">
         <service
             android:name="ru.apps78.cotune.CotuneNodeService"

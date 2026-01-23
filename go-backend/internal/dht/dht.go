@@ -3,6 +3,7 @@ package dht
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -53,6 +54,7 @@ func New(ctx context.Context, h host.Host, bootstrapAddr string) (*Service, erro
 		}
 	} else {
 		// Use default bootstrap
+		log.Println("No bootstrap addresses provided, using default DHT bootstrap...")
 		if err := svc.dht.Bootstrap(ctx); err != nil {
 			return nil, fmt.Errorf("default bootstrap failed: %w", err)
 		}
