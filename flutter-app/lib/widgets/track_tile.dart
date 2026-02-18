@@ -1,11 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-
 import 'package:cotune_mobile/screens/folder_screen.dart';
 import 'package:cotune_mobile/widgets/modal.dart';
 import 'package:cotune_mobile/widgets/option_sheet.dart';
-import 'package:easy_file_saver/easy_file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,9 +28,16 @@ class TrackTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     final unsigned = !track.recognized;
+    final published = track.recognized && track.sharedToNetwork;
 
     return InkWell(
       onTap: () {
+        final queue = storage.allTracks();
+        final likedQueue = queue.where((t) => t.liked).toList();
+        audio.setQueueFromTracks(
+          likedQueue.isNotEmpty ? likedQueue : queue,
+          currentId: track.id,
+        );
         audio.playUri(track.path, trackId: track.id);
         showModalBottomSheet(
           context: context,
@@ -74,6 +78,28 @@ class TrackTile extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(
+                        published
+                            ? Icons.cloud_done_outlined
+                            : Icons.cloud_off_outlined,
+                        size: 14,
+                        color: published
+                            ? Colors.lightGreenAccent
+                            : Colors.orangeAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        published ? 'Опубликован в сети' : 'Не опубликован',
+                        style: GoogleFonts.inter(
+                          color: theme.textTheme.bodySmall?.color,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -132,19 +158,44 @@ class TrackTile extends StatelessWidget {
                 }
 
                 await storage.updateTrack(track);
-                if (track.liked) {
+                if (track.liked && track.recognized) {
                   // Only share if file exists
                   final file = File(track.path);
                   if (await file.exists()) {
-                    await P2PGrpcService().shareTrack(
-                      track.id,
-                      track.path,
-                      title: track.title,
-                      artist: track.artist,
-                      recognized: track.recognized,
-                      checksum: track.checksum,
-                    );
+                    try {
+                      await P2PGrpcService().shareTrack(
+                        track.id,
+                        track.path,
+                        title: track.title,
+                        artist: track.artist,
+                        recognized: track.recognized,
+                      );
+                      track.sharedToNetwork = true;
+                      await storage.updateTrack(track);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Трек опубликован в P2P сети'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      track.sharedToNetwork = false;
+                      await storage.updateTrack(track);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Ошибка публикации трека: $e'),
+                          ),
+                        );
+                      }
+                    }
                   }
+                } else if (track.liked &&
+                    !track.recognized &&
+                    track.sharedToNetwork) {
+                  track.sharedToNetwork = false;
+                  await storage.updateTrack(track);
                 }
               },
             ),
@@ -355,12 +406,27 @@ class TrackTile extends StatelessWidget {
           title: track.title,
           artist: track.artist,
           recognized: true,
-          checksum: track.checksum,
         );
-      } catch (_) {}
-      ScaffoldMessenger.of(
-        ctx,
-      ).showSnackBar(const SnackBar(content: Text('Данные трека обновлены')));
+        track.sharedToNetwork = true;
+        await storage.updateTrack(track);
+        if (ctx.mounted) {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Данные трека обновлены и опубликованы'),
+            ),
+          );
+        }
+      } catch (e) {
+        track.sharedToNetwork = false;
+        await storage.updateTrack(track);
+        if (ctx.mounted) {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            SnackBar(
+              content: Text('Данные обновлены, но публикация не удалась: $e'),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -377,39 +443,7 @@ class TrackTile extends StatelessWidget {
       final filename = p.basename(sourcePath);
       final bytes = await src.readAsBytes();
 
-      if (Platform.isAndroid) {
-        try {
-          final filePath = await EasyFileSaver.save(
-            fileName: filename,
-            bytes: Uint8List.fromList(bytes),
-            directory: EasyFileSaveDirectory.download, // напрямую в Загрузки
-            onPermissionDenied: () {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('Нет доступа к памяти')),
-              );
-            },
-          );
-
-          if (filePath != null) {
-            ScaffoldMessenger.of(
-              ctx,
-            ).showSnackBar(SnackBar(content: Text('Сохранено: $filePath')));
-          } else {
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Файл сохранён (через SAF, путь не возвращается)',
-                ),
-              ),
-            );
-          }
-          return;
-        } catch (e) {
-          // если что-то пошло не так → fallback
-        }
-      }
-
-      // --- fallback для iOS / desktop ---
+      // Сохраняем во внутреннюю пользовательскую директорию на всех платформах.
       final appDir = await getApplicationDocumentsDirectory();
       var dest = File(p.join(appDir.path, filename));
       var counter = 1;

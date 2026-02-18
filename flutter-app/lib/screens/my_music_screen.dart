@@ -75,7 +75,17 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                         ChipsRow(
                           chips: [
                             ChoiceChip(
-                              label: Text('Треки'),
+                              label: Text(
+                                'Треки',
+                                style: GoogleFonts.inter(
+                                  color: _filter == 0
+                                      ? Colors.black
+                                      : theme.colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                softWrap: false,
+                              ),
                               selected: _filter == 0,
                               showCheckmark: false,
                               selectedColor: CotuneTheme.highlight,
@@ -83,7 +93,17 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                               onSelected: (_) => setState(() => _filter = 0),
                             ),
                             ChoiceChip(
-                              label: Text('Исполнители'),
+                              label: Text(
+                                'Исполнители',
+                                style: GoogleFonts.inter(
+                                  color: _filter == 1
+                                      ? Colors.black
+                                      : theme.colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                softWrap: false,
+                              ),
                               selected: _filter == 1,
                               showCheckmark: false,
                               selectedColor: CotuneTheme.highlight,
@@ -91,7 +111,17 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                               onSelected: (_) => setState(() => _filter = 1),
                             ),
                             ChoiceChip(
-                              label: Text('Плейлисты'),
+                              label: Text(
+                                'Плейлисты',
+                                style: GoogleFonts.inter(
+                                  color: _filter == 2
+                                      ? Colors.black
+                                      : theme.colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                softWrap: false,
+                              ),
                               selected: _filter == 2,
                               showCheckmark: false,
                               selectedColor: CotuneTheme.highlight,
@@ -99,7 +129,17 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                               onSelected: (_) => setState(() => _filter = 2),
                             ),
                             ChoiceChip(
-                              label: Text('Не подписаны'),
+                              label: Text(
+                                'Не подписаны',
+                                style: GoogleFonts.inter(
+                                  color: _filter == 3
+                                      ? Colors.black
+                                      : theme.colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                softWrap: false,
+                              ),
                               selected: _filter == 3,
                               showCheckmark: false,
                               selectedColor: CotuneTheme.highlight,

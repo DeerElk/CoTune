@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -26,16 +28,29 @@ func New(ctx context.Context, listenAddr string, dataDir string, enableRelay boo
 		return nil, fmt.Errorf("failed to load/generate key: %w", err)
 	}
 
-	// Parse listen address
-	addr, err := multiaddr.NewMultiaddr(listenAddr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid listen address: %w", err)
+	// Parse one or many listen addresses (comma-separated).
+	parts := strings.Split(listenAddr, ",")
+	listenAddrs := make([]multiaddr.Multiaddr, 0, len(parts))
+	for _, part := range parts {
+		addrStr := strings.TrimSpace(part)
+		if addrStr == "" {
+			continue
+		}
+		addr, err := multiaddr.NewMultiaddr(addrStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid listen address %q: %w", addrStr, err)
+		}
+		listenAddrs = append(listenAddrs, addr)
+	}
+	if len(listenAddrs) == 0 {
+		return nil, fmt.Errorf("no valid listen addresses provided")
 	}
 
 	// Build libp2p options
+	announceAddrs := parseAnnounceAddrs(os.Getenv("COTUNE_ANNOUNCE_ADDRS"))
 	opts := []libp2p.Option{
 		libp2p.Identity(privKey),
-		libp2p.ListenAddrs(addr),
+		libp2p.ListenAddrs(listenAddrs...),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.Transport(libp2pquic.NewTransport),
 		libp2p.Security(noise.ID, noise.New),
@@ -43,9 +58,26 @@ func New(ctx context.Context, listenAddr string, dataDir string, enableRelay boo
 		libp2p.DefaultPeerstore,
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
-		libp2p.EnableAutoRelay(),
+		// TODO: libp2p.EnableAutoRelay(),
 		libp2p.EnableHolePunching(),
 		libp2p.EnableRelayService(),
+	}
+	if len(announceAddrs) > 0 {
+		opts = append(opts, libp2p.AddrsFactory(func(existing []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+			out := make([]multiaddr.Multiaddr, 0, len(existing)+len(announceAddrs))
+			out = append(out, existing...)
+			seen := make(map[string]struct{}, len(existing))
+			for _, a := range existing {
+				seen[a.String()] = struct{}{}
+			}
+			for _, a := range announceAddrs {
+				if _, ok := seen[a.String()]; ok {
+					continue
+				}
+				out = append(out, a)
+			}
+			return out
+		}))
 	}
 
 	// Create host
@@ -146,4 +178,26 @@ func ConnectToPeerInfo(ctx context.Context, h host.Host, peerID string, addrs []
 	}
 
 	return nil
+}
+
+func parseAnnounceAddrs(raw string) []multiaddr.Multiaddr {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+
+	parts := strings.Split(raw, ",")
+	result := make([]multiaddr.Multiaddr, 0, len(parts))
+	for _, part := range parts {
+		addr := strings.TrimSpace(part)
+		if addr == "" {
+			continue
+		}
+		maddr, err := multiaddr.NewMultiaddr(addr)
+		if err != nil {
+			continue
+		}
+		result = append(result, maddr)
+	}
+	return result
 }

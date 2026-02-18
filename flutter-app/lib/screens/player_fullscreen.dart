@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,10 +6,12 @@ import '../services/audio_player_service.dart';
 import '../services/storage_service.dart';
 import '../theme.dart';
 import '../l10n/app_localizations.dart';
-import '../widgets/animated_cat.dart';
 
 class PlayerFullScreenSheet extends StatelessWidget {
   const PlayerFullScreenSheet({super.key});
+
+  static const String _animFrame1 = 'assets/player_anim/frame_1.png';
+  static const String _animFrame2 = 'assets/player_anim/frame_2.png';
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +23,13 @@ class PlayerFullScreenSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final size = MediaQuery.of(context).size;
+    final onSurface = theme.colorScheme.onSurface;
+    final bgTop = theme.brightness == Brightness.dark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF6F7FB);
+    final bgBottom = theme.brightness == Brightness.dark
+        ? const Color(0xFF0D0D0D)
+        : const Color(0xFFEDEFF5);
 
     return Container(
       height: size.height * 0.92,
@@ -27,15 +37,12 @@ class PlayerFullScreenSheet extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: theme.brightness == Brightness.dark
-              ? [const Color(0xFF1a1a1a), theme.scaffoldBackgroundColor]
-              : [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor],
+          colors: [bgTop, bgBottom],
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: Column(
         children: [
-          // Header with drag handle
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 8),
             child: Row(
@@ -45,7 +52,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: onSurface.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -58,18 +65,11 @@ class PlayerFullScreenSheet extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.expand_more,
-                    color: theme.iconTheme.color,
-                    size: 28,
-                  ),
+                  icon: Icon(Icons.expand_more, color: onSurface, size: 28),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: Icon(Icons.more_vert, color: theme.iconTheme.color),
-                  onPressed: () {},
-                ),
+                const SizedBox(width: 48),
               ],
             ),
           ),
@@ -82,14 +82,16 @@ class PlayerFullScreenSheet extends StatelessWidget {
                     Icon(
                       Icons.music_note,
                       size: 64,
-                      color: theme.iconTheme.color?.withOpacity(0.3),
+                      color: onSurface.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       l10n.playerNothingPlaying,
                       style: GoogleFonts.manrope(
                         textStyle: theme.textTheme.headlineSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                     ),
@@ -99,252 +101,248 @@ class PlayerFullScreenSheet extends StatelessWidget {
             )
           else
             Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 24),
-                      // Animated cat (replaces album art)
-                      StreamBuilder<bool>(
-                        stream: audio.player.playingStream,
-                        builder: (context, s) {
-                          final playing = s.data ?? false;
-                          return Container(
-                            width: size.width * 0.85,
-                            height: size.width * 0.85,
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: CotuneTheme.highlight.withOpacity(0.3),
-                                  blurRadius: 30,
-                                  spreadRadius: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: Column(
+                  children: [
+                    StreamBuilder<bool>(
+                      stream: audio.player.playingStream,
+                      builder: (context, snap) {
+                        final playing = snap.data ?? false;
+                        return Container(
+                          width: double.infinity,
+                          height: size.width * 0.68,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: Colors.white.withValues(alpha: 0.04),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: Center(
+                            child: _TwoFrameAnimation(
+                              isPlaying: playing,
+                              frameAAsset: _animFrame1,
+                              frameBAsset: _animFrame2,
+                              size: size.width * 0.52,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      current.title,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        textStyle: theme.textTheme.headlineMedium?.copyWith(
+                          color: onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 26,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      current.artist,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        textStyle: theme.textTheme.titleMedium?.copyWith(
+                          color: onSurface.withValues(alpha: 0.72),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    StreamBuilder<Duration>(
+                      stream: audio.player.positionStream,
+                      builder: (context, snap) {
+                        final pos = snap.data ?? Duration.zero;
+                        final dur = audio.player.duration ?? Duration.zero;
+                        final max = dur.inMilliseconds.toDouble();
+                        final value = dur.inMilliseconds == 0
+                            ? 0.0
+                            : pos.inMilliseconds.toDouble();
+                        return Column(
+                          children: [
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 4,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 7,
+                                ),
+                                activeTrackColor: CotuneTheme.highlight,
+                                inactiveTrackColor: onSurface.withValues(
+                                  alpha: 0.2,
+                                ),
+                                thumbColor: Colors.white,
+                              ),
+                              child: Slider(
+                                value: value.clamp(0, max <= 0 ? 1 : max),
+                                min: 0,
+                                max: max <= 0 ? 1 : max,
+                                onChanged: (v) => audio.seek(
+                                  Duration(milliseconds: v.toInt()),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _fmt(pos),
+                                  style: GoogleFonts.inter(
+                                    color: onSurface.withValues(alpha: 0.62),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  _fmt(dur),
+                                  style: GoogleFonts.inter(
+                                    color: onSurface.withValues(alpha: 0.62),
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  CotuneTheme.highlight.withOpacity(0.8),
-                                  CotuneTheme.highlight.withOpacity(0.4),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: audio.shuffleEnabled,
+                          builder: (context, enabled, _) {
+                            return IconButton(
+                              icon: Icon(
+                                Icons.shuffle_rounded,
+                                color: enabled
+                                    ? CotuneTheme.highlight
+                                    : onSurface.withValues(alpha: 0.65),
+                              ),
+                              onPressed: audio.toggleShuffle,
+                              tooltip: 'Shuffle',
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 24),
+                        ValueListenableBuilder<RepeatModeState>(
+                          valueListenable: audio.repeatMode,
+                          builder: (context, mode, _) {
+                            IconData icon;
+                            if (mode == RepeatModeState.one) {
+                              icon = Icons.repeat_one_rounded;
+                            } else {
+                              icon = Icons.repeat_rounded;
+                            }
+                            final active = mode != RepeatModeState.off;
+                            return IconButton(
+                              icon: Icon(
+                                icon,
+                                color: active
+                                    ? CotuneTheme.highlight
+                                    : onSurface.withValues(alpha: 0.65),
+                              ),
+                              onPressed: audio.cycleRepeatMode,
+                              tooltip: 'Repeat',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    StreamBuilder<bool>(
+                      stream: audio.player.playingStream,
+                      builder: (context, s) {
+                        final playing = s.data ?? false;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.skip_previous_rounded,
+                                color: onSurface,
+                                size: 38,
+                              ),
+                              onPressed: () async {
+                                final pos = audio.player.position;
+                                if (pos.inSeconds > 5) {
+                                  await audio.seek(Duration.zero);
+                                } else {
+                                  await audio.previous();
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              width: 88,
+                              height: 88,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: CotuneTheme.highlight,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: CotuneTheme.highlight.withValues(
+                                      alpha: 0.38,
+                                    ),
+                                    blurRadius: 24,
+                                    spreadRadius: 4,
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Center(
-                              child: AnimatedCat(
-                                isPlaying: playing,
-                                size: size.width * 0.7,
+                              child: IconButton(
+                                icon: Icon(
+                                  playing
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  size: 44,
+                                  color: Colors.black,
+                                ),
+                                onPressed: () {
+                                  if (playing) {
+                                    audio.pause();
+                                  } else {
+                                    audio.playUri(
+                                      current.path,
+                                      trackId: current.id,
+                                    );
+                                  }
+                                },
                               ),
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      // Track title
-                      Text(
-                        current.title,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          textStyle: theme.textTheme.headlineMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Artist name
-                      Text(
-                        current.artist,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          textStyle: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      // Progress bar with time
-                      StreamBuilder<Duration>(
-                        stream: audio.player.positionStream,
-                        builder: (context, snap) {
-                          final pos = snap.data ?? Duration.zero;
-                          final dur = audio.player.duration ?? Duration.zero;
-                          final max = dur.inMilliseconds.toDouble();
-                          final value = dur.inMilliseconds == 0
-                              ? 0.0
-                              : pos.inMilliseconds.toDouble();
-                          return Column(
-                            children: [
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 4,
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 8,
-                                  ),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                    overlayRadius: 16,
-                                  ),
-                                  activeTrackColor: CotuneTheme.highlight,
-                                  inactiveTrackColor: theme.dividerColor
-                                      .withOpacity(0.3),
-                                  thumbColor: Colors.white,
-                                  overlayColor: CotuneTheme.highlight
-                                      .withOpacity(0.2),
-                                ),
-                                child: Slider(
-                                  value: value.clamp(0, max <= 0 ? 1 : max),
-                                  min: 0,
-                                  max: max <= 0 ? 1 : max,
-                                  onChanged: (v) => audio.seek(
-                                    Duration(milliseconds: v.toInt()),
-                                  ),
-                                ),
+                            const SizedBox(width: 10),
+                            IconButton(
+                              icon: Icon(
+                                Icons.skip_next_rounded,
+                                color: onSurface,
+                                size: 38,
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _fmt(pos),
-                                      style: GoogleFonts.inter(
-                                        textStyle: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacity(0.6),
-                                              fontSize: 12,
-                                            ),
-                                      ),
-                                    ),
-                                    Text(
-                                      _fmt(dur),
-                                      style: GoogleFonts.inter(
-                                        textStyle: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacity(0.6),
-                                              fontSize: 12,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      // Main controls (play/pause, previous, next)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.shuffle),
-                            iconSize: 24,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
-                            onPressed: () {},
-                          ),
-                          const SizedBox(width: 16),
-                          IconButton(
-                            icon: const Icon(Icons.skip_previous),
-                            iconSize: 36,
-                            color: theme.iconTheme.color,
-                            onPressed: () async {
-                              final pos = audio.player.position;
-                              if (pos.inSeconds > 5) {
-                                await audio.seek(Duration.zero);
-                              } else {
-                                await audio.previous();
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          StreamBuilder<bool>(
-                            stream: audio.player.playingStream,
-                            builder: (context, s) {
-                              final playing = s.data ?? false;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: CotuneTheme.highlight.withOpacity(
-                                        0.4,
-                                      ),
-                                      blurRadius: 20,
-                                      spreadRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    playing
-                                        ? Icons.pause_circle_filled
-                                        : Icons.play_circle_fill,
-                                    size: 72,
-                                  ),
-                                  color: CotuneTheme.highlight,
-                                  onPressed: () {
-                                    if (playing) {
-                                      audio.pause();
-                                    } else {
-                                      audio.playUri(
-                                        current.path,
-                                        trackId: current.id,
-                                      );
-                                    }
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.skip_next),
-                            iconSize: 36,
-                            color: theme.iconTheme.color,
-                            onPressed: () => audio.next(),
-                          ),
-                          const SizedBox(width: 16),
-                          IconButton(
-                            icon: Icon(
-                              current.liked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
+                              onPressed: () => audio.next(),
                             ),
-                            iconSize: 24,
-                            color: current.liked
-                                ? CotuneTheme.highlight
-                                : theme.iconTheme.color?.withOpacity(0.7),
-                            onPressed: () async {
-                              current.liked = !current.liked;
-                              await storage.updateTrack(current);
-                            },
-                          ),
-                        ],
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: Icon(
+                        current.liked ? Icons.favorite : Icons.favorite_border,
+                        color: current.liked
+                            ? CotuneTheme.highlight
+                            : onSurface.withValues(alpha: 0.72),
                       ),
-                      const SizedBox(height: 16),
-                      // Repeat button
-                      IconButton(
-                        icon: const Icon(Icons.repeat),
-                        iconSize: 24,
-                        color: theme.iconTheme.color?.withOpacity(0.7),
-                        onPressed: () {},
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                      onPressed: () async {
+                        current.liked = !current.liked;
+                        await storage.updateTrack(current);
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -359,5 +357,90 @@ class PlayerFullScreenSheet extends StatelessWidget {
     final hh = d.inHours;
     if (hh > 0) return '$hh:$mm:$ss';
     return '$mm:$ss';
+  }
+}
+
+class _TwoFrameAnimation extends StatefulWidget {
+  final bool isPlaying;
+  final String frameAAsset;
+  final String frameBAsset;
+  final double size;
+
+  const _TwoFrameAnimation({
+    required this.isPlaying,
+    required this.frameAAsset,
+    required this.frameBAsset,
+    required this.size,
+  });
+
+  @override
+  State<_TwoFrameAnimation> createState() => _TwoFrameAnimationState();
+}
+
+class _TwoFrameAnimationState extends State<_TwoFrameAnimation> {
+  Timer? _timer;
+  int _frame = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TwoFrameAnimation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPlaying != widget.isPlaying) {
+      _syncTimer();
+    }
+  }
+
+  void _syncTimer() {
+    _timer?.cancel();
+    if (widget.isPlaying) {
+      _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        if (!mounted) return;
+        setState(() {
+          _frame = _frame == 0 ? 1 : 0;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _frame == 0 ? widget.frameAAsset : widget.frameBAsset;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.asset(
+        asset,
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+            child: Icon(
+              _frame == 0
+                  ? Icons.graphic_eq_rounded
+                  : Icons.multitrack_audio_rounded,
+              size: widget.size * 0.42,
+              color: CotuneTheme.highlight,
+            ),
+          );
+        },
+      ),
+    );
   }
 }

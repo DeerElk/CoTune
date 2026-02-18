@@ -34,9 +34,8 @@ Bootstrap peer нужен только для первых ~1000 устройс�
 - Transport: TCP + QUIC
 - Security: Noise
 - Protocols: Identify, Ping
-- NAT: AutoNAT (server mode), Hole Punching
-- Relay: v2 (optional, not forced)
-- Connection Manager: LowWater=100, HighWater=2000
+- NAT: AutoNAT service + Hole Punching
+- Relay: v2 service enabled
 ```
 
 ### DHT Configuration
@@ -50,9 +49,8 @@ Bootstrap peer нужен только для первых ~1000 устройс�
 
 ### Rate Limiting
 
-- Connection limits: Max 2000 concurrent connections
-- Handshake rate limiting: Per-peer window-based
-- Graceful connection trimming
+Базовая защита обеспечивается libp2p defaults и системными лимитами.
+При необходимости лимиты добавляются через внешний process manager (systemd, firewall, nftables).
 
 ## Жизненный цикл
 

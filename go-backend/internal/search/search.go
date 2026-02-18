@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 
 	"github.com/cotune/go-backend/internal/dht"
 	dhtpkg "github.com/cotune/go-backend/internal/dht"
@@ -50,12 +51,15 @@ type SearchResult struct {
 func (s *Service) Search(ctx context.Context, query string, maxResults int) ([]*SearchResult, error) {
 	// Tokenize query
 	tokens := s.tokenize(query)
+	fmt.Printf("search-service-start query=%q tokens=%v max=%d\n", query, tokens, maxResults)
 	if len(tokens) == 0 {
+		fmt.Printf("search-service-empty-tokens query=%q\n", query)
 		return []*SearchResult{}, nil
 	}
 
 	// First, search locally
 	localResults := s.searchLocal(tokens)
+	fmt.Printf("search-service-local-results query=%q count=%d\n", query, len(localResults))
 
 	// Then, search in network
 	networkResults, err := s.searchNetwork(ctx, tokens, maxResults)
@@ -63,6 +67,7 @@ func (s *Service) Search(ctx context.Context, query string, maxResults int) ([]*
 		// Non-fatal, continue with local results
 		fmt.Printf("Network search error: %v\n", err)
 	}
+	fmt.Printf("search-service-network-results query=%q count=%d\n", query, len(networkResults))
 
 	// Merge results
 	seenCTIDs := make(map[string]bool)
@@ -87,19 +92,25 @@ func (s *Service) Search(ctx context.Context, query string, maxResults int) ([]*
 		}
 	}
 
+	fmt.Printf("search-service-done query=%q total=%d\n", query, len(results))
 	return results, nil
 }
 
 // searchLocal searches in local storage
 func (s *Service) searchLocal(tokens []string) []*SearchResult {
-	// Search in local storage
-	tracks, err := s.store.FindTracksByToken(strings.Join(tokens, " "))
-	if err != nil {
-		return []*SearchResult{}
+	seen := make(map[string]*models.Track)
+	for _, token := range tokens {
+		tracks, err := s.store.FindTracksByToken(token)
+		if err != nil {
+			continue
+		}
+		for _, track := range tracks {
+			seen[track.ID] = track
+		}
 	}
 
-	results := make([]*SearchResult, 0, len(tracks))
-	for _, track := range tracks {
+	results := make([]*SearchResult, 0, len(seen))
+	for _, track := range seen {
 		if track.CTID == "" {
 			continue // Skip tracks without CTID
 		}
@@ -124,6 +135,8 @@ func (s *Service) searchLocal(tokens []string) []*SearchResult {
 func (s *Service) searchNetwork(ctx context.Context, tokens []string, maxResults int) ([]*SearchResult, error) {
 	// Step 1: For each token, find providers that have this token
 	ctidSet := make(map[string]bool)
+	remoteHints := make(map[string]IndexTrackHint)
+	fmt.Printf("search-network-start tokens=%v max=%d\n", tokens, maxResults)
 
 	// Collect CTIDs from local index first
 	s.mu.RLock()
@@ -139,27 +152,49 @@ func (s *Service) searchNetwork(ctx context.Context, tokens []string, maxResults
 	for _, token := range tokens {
 		// Hash token
 		tokenHash := dhtpkg.HashToken(token)
+		fmt.Printf("search-network-token token=%q token_hash=%s\n", token, tokenHash)
 
 		// FindProviders(/token/<hash>)
 		providers, err := s.dht.FindProvidersForToken(ctx, tokenHash, 10)
 		if err != nil {
+			fmt.Printf("search-network-token-providers-error token=%q err=%v\n", token, err)
 			// Non-fatal, continue with next token
 			continue
 		}
+		fmt.Printf("search-network-token-providers token=%q count=%d\n", token, len(providers))
 
 		// Step 2: Query each provider for CTIDs matching this token
 		// Use the index query protocol to get CTIDs from peer's local index
 		for _, provider := range providers {
+			// Some DHT responses return provider IDs without addrs. Resolve addrs via DHT FindPeer.
+			if len(provider.Addrs) == 0 {
+				if info, findErr := s.dht.FindPeer(ctx, provider.ID); findErr == nil && len(info.Addrs) > 0 {
+					provider.Addrs = info.Addrs
+					fmt.Printf("search-network-findpeer-resolved peer=%s addrs=%d\n", provider.ID.String(), len(info.Addrs))
+				} else if findErr != nil {
+					fmt.Printf("search-network-findpeer-error peer=%s err=%v\n", provider.ID.String(), findErr)
+				}
+			}
+			if len(provider.Addrs) > 0 {
+				s.host.Peerstore().AddAddrs(provider.ID, provider.Addrs, peerstore.TempAddrTTL)
+			}
+
 			// Query peer's local index for this token
-			peerCTIDs, err := QueryPeerIndex(ctx, s.host, provider.ID, token)
+			peerHints, err := QueryPeerIndex(ctx, s.host, provider.ID, token)
 			if err != nil {
+				fmt.Printf("search-network-query-peer-index-error peer=%s token=%q err=%v\n", provider.ID.String(), token, err)
 				// Non-fatal, continue with next provider
 				continue
 			}
+			fmt.Printf("search-network-query-peer-index-ok peer=%s token=%q ctids=%d\n", provider.ID.String(), token, len(peerHints))
 
 			// Add CTIDs to set
-			for _, ctid := range peerCTIDs {
-				ctidSet[ctid] = true
+			for _, hint := range peerHints {
+				if hint.CTID == "" {
+					continue
+				}
+				ctidSet[hint.CTID] = true
+				remoteHints[hint.CTID] = hint
 			}
 		}
 	}
@@ -174,22 +209,34 @@ func (s *Service) searchNetwork(ctx context.Context, tokens []string, maxResults
 		// FindProviders(/ctid/<CTID>)
 		providers, err := s.dht.FindProviders(ctx, ctid, 5)
 		if err != nil {
+			fmt.Printf("search-network-ctid-providers-error ctid=%s err=%v\n", ctid, err)
 			continue
 		}
+		fmt.Printf("search-network-ctid-providers ctid=%s count=%d\n", ctid, len(providers))
 
 		// Find track metadata locally if available
 		track, err := s.store.FindTrackByCTID(ctid)
 		var title, artist string
-		var recognized bool
+		recognized := true
 		if err == nil && track != nil {
 			title = track.Title
 			artist = track.Artist
-			recognized = track.Recognized
 		} else {
-			// Track not in local storage, use placeholder
-			title = "Unknown"
-			artist = "Unknown"
-			recognized = false
+			// Fallback to remote metadata received from index query.
+			if hint, ok := remoteHints[ctid]; ok && (hint.Title != "" || hint.Artist != "") {
+				title = hint.Title
+				if title == "" {
+					title = "Unknown"
+				}
+				artist = hint.Artist
+				if artist == "" {
+					artist = "Unknown"
+				}
+			} else {
+				// Track not in local storage, use placeholder
+				title = "Unknown"
+				artist = "Unknown"
+			}
 		}
 
 		providerStrs := make([]string, 0, len(providers))
@@ -206,6 +253,7 @@ func (s *Service) searchNetwork(ctx context.Context, tokens []string, maxResults
 		})
 	}
 
+	fmt.Printf("search-network-done ctids=%d results=%d\n", len(ctidSet), len(results))
 	return results, nil
 }
 

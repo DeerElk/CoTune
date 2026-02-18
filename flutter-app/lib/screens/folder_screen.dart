@@ -171,7 +171,9 @@ class _FolderScreenState extends State<FolderScreen> {
               Text(
                 'Плейлист "${pl.name}" будет удалён.',
                 style: TextStyle(
-                  color: Theme.of(bctx).colorScheme.onSurface.withOpacity(0.8),
+                  color: Theme.of(
+                    bctx,
+                  ).colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 16),
@@ -242,7 +244,7 @@ class _FolderScreenState extends State<FolderScreen> {
                             style: TextStyle(
                               color: Theme.of(
                                 sbCtx,
-                              ).colorScheme.onSurface.withOpacity(0.85),
+                              ).colorScheme.onSurface.withValues(alpha: 0.85),
                             ),
                           ),
                         );

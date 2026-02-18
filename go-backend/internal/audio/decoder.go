@@ -34,7 +34,15 @@ func DecodeAudioToPCM(ctx context.Context, filePath string) ([]int16, error) {
 		// Use ffmpeg for formats not directly supported
 		return decodeWithFFmpeg(ctx, filePath)
 	default:
-		// Try ffmpeg as fallback
+		// Unknown extension: try built-in decoders first (important on Android
+		// where picker-provided filenames may miss extension).
+		if pcm, err := decodeWAV(ctx, filePath); err == nil {
+			return pcm, nil
+		}
+		if pcm, err := decodeMP3(ctx, filePath); err == nil {
+			return pcm, nil
+		}
+		// Final fallback: ffmpeg for other codecs.
 		return decodeWithFFmpeg(ctx, filePath)
 	}
 }

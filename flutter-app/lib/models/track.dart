@@ -7,7 +7,7 @@ class Track {
   String path;
   bool liked;
   bool recognized;
-  String? checksum; // Legacy MD5 (deprecated, use ctid)
+  bool sharedToNetwork;
   String? ctid; // Canonical Track ID (SHA256 of normalized PCM)
 
   Track({
@@ -17,7 +17,7 @@ class Track {
     required this.path,
     this.liked = false,
     this.recognized = true,
-    this.checksum,
+    this.sharedToNetwork = false,
     this.ctid,
   });
 
@@ -28,7 +28,7 @@ class Track {
     'path': path,
     'liked': liked,
     'recognized': recognized,
-    'checksum': checksum,
+    'sharedToNetwork': sharedToNetwork,
     'ctid': ctid,
   };
 
@@ -39,7 +39,7 @@ class Track {
     final path = (m['path'] as String?) ?? '';
     final liked = (m['liked'] as bool?) ?? false;
     final recognized = (m['recognized'] as bool?) ?? true;
-    final checksum = (m['checksum'] as String?);
+    final sharedToNetwork = (m['sharedToNetwork'] as bool?) ?? false;
     final ctid = (m['ctid'] as String?);
 
     return Track(
@@ -49,7 +49,7 @@ class Track {
       path: path,
       liked: liked,
       recognized: recognized,
-      checksum: checksum,
+      sharedToNetwork: sharedToNetwork,
       ctid: ctid,
     );
   }

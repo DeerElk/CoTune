@@ -5,6 +5,17 @@
 ```bash
 cd bootstrap
 go mod download
+export GOOS=linux
+export GOARCH=amd64
+export CGO_ENABLED=0
+go build -o cotune-bootstrap main.go
+```
+
+Для PowerShell:
+
+```powershell
+cd bootstrap
+go mod download
 $env:GOOS="linux"
 $env:GOARCH="amd64"
 $env:CGO_ENABLED="0"
@@ -38,6 +49,12 @@ make build
 ```
 
 **Важно:** При первом запуске будет создан файл ключа. Этот ключ обеспечивает стабильный peer ID при перезапусках. Сохраните этот файл в безопасном месте!
+
+Проверка peer ID по ключу:
+
+```bash
+./cotune-bootstrap -key /var/lib/cotune-bootstrap/bootstrap.key -print-peer-id
+```
 
 ### С debug логированием
 

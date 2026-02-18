@@ -42,8 +42,9 @@ func NewHost(ctx context.Context, listenAddrs []string, keyPath string) (host.Ho
 		libp2p.Security(noise.ID, noise.New),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultPeerstore,
-		// Enable NAT traversal features and hole punching.
-		// AutoNAT server is wired explicitly below via autonat.New.
+		libp2p.NATPortMap(),
+		libp2p.EnableNATService(),
+		libp2p.EnableRelayService(),
 		libp2p.EnableHolePunching(),
 	}
 

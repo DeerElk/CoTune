@@ -1,0 +1,65 @@
+{
+  "mode": "smoke",
+  "peers": 10,
+  "generated_at": "2026-02-17T17:32:21Z",
+  "summary": {
+    "avg_connected_before": 0.00,
+    "avg_routing_before": 0.00,
+    "avg_connected_after": 0.00,
+    "avg_routing_after": 0.00
+  },
+  "outputs": {
+    "list_before": "3c61761dfda06803d53944f80b301ff4eb8a07b0a7e0d5c4bcbc1497e9495ad6 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/32951/p2p/12D3KooWJRko1sVkcCrDa7buthyPbGUksKy447nDdYcmzgNi3vMX\",\"/ip4/172.18.0.3/tcp/32951/p2p/12D3KooWJRko1sVkcCrDa7buthyPbGUksKy447nDdYcmzgNi3vMX\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWJRko1sVkcCrDa7buthyPbGUksKy447nDdYcmzgNi3vMX\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+7a00d4a035a7cd4012b7e7cc3490e223a60d8d65e86919a7815ea8550c2869aa -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/37297/p2p/12D3KooWMy8YSeBSxfv3jDyqZqB4gmY1vbvuDyEz5DGHaSkpQ3KU\",\"/ip4/172.18.0.7/tcp/37297/p2p/12D3KooWMy8YSeBSxfv3jDyqZqB4gmY1vbvuDyEz5DGHaSkpQ3KU\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWMy8YSeBSxfv3jDyqZqB4gmY1vbvuDyEz5DGHaSkpQ3KU\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+d8faf489dc841212d3475a0c05dcff4b3d4284848162972287110d8a271001e2 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/37903/p2p/12D3KooWEfXkqg1v3tAmL8yQZibMNtVpgZ5wfYkKLZPVKCsu7jM7\",\"/ip4/172.18.0.4/tcp/37903/p2p/12D3KooWEfXkqg1v3tAmL8yQZibMNtVpgZ5wfYkKLZPVKCsu7jM7\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWEfXkqg1v3tAmL8yQZibMNtVpgZ5wfYkKLZPVKCsu7jM7\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+e40cb6ef65da04895a5fe58052c3159bf84a9a1bb7e3a3bb0be509713c8f48eb -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/40623/p2p/12D3KooWJW34Qgow15GEs1Gk5bkYjtfXuDx3P8dmBYfEUxgp2vrN\",\"/ip4/172.18.0.2/tcp/40623/p2p/12D3KooWJW34Qgow15GEs1Gk5bkYjtfXuDx3P8dmBYfEUxgp2vrN\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWJW34Qgow15GEs1Gk5bkYjtfXuDx3P8dmBYfEUxgp2vrN\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+56da0954321837fe83e22f05dc84ff6f922118e52db8207a85134db19b841784 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/44433/p2p/12D3KooWJ1un2hzLMe6trdSyGpWuP46S733M9ToyAbhE8t1yJSiE\",\"/ip4/172.18.0.5/tcp/44433/p2p/12D3KooWJ1un2hzLMe6trdSyGpWuP46S733M9ToyAbhE8t1yJSiE\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWJ1un2hzLMe6trdSyGpWuP46S733M9ToyAbhE8t1yJSiE\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+0ce935973dccde1269766a8efe79efdcac8470eac02c82067a74a6c8ff2adbc6 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/37069/p2p/12D3KooWCkMtnqQfJfxAddm7kPffPoftQeBKSzVwm4ik2nDaYB2e\",\"/ip4/172.18.0.6/tcp/37069/p2p/12D3KooWCkMtnqQfJfxAddm7kPffPoftQeBKSzVwm4ik2nDaYB2e\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWCkMtnqQfJfxAddm7kPffPoftQeBKSzVwm4ik2nDaYB2e\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+c80b8b7c18e8f6421bb445d81e8009f07b167813dc73aa560e6c5f3a78bac2ef -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/36241/p2p/12D3KooWEzykLsV5tkUmJLZNyvXj7MVtJMioERmod1zzeBDgLss8\",\"/ip4/172.18.0.9/tcp/36241/p2p/12D3KooWEzykLsV5tkUmJLZNyvXj7MVtJMioERmod1zzeBDgLss8\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWEzykLsV5tkUmJLZNyvXj7MVtJMioERmod1zzeBDgLss8\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+7f4a30440d56164de62686fec19d1197dd0f5ea94f619880640c154afea848e7 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/38953/p2p/12D3KooWDFfxsayq8aNBxQbQHgMu5Ki69S9hU2JywzW3Si7KGyJN\",\"/ip4/172.18.0.11/tcp/38953/p2p/12D3KooWDFfxsayq8aNBxQbQHgMu5Ki69S9hU2JywzW3Si7KGyJN\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWDFfxsayq8aNBxQbQHgMu5Ki69S9hU2JywzW3Si7KGyJN\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+0b3ca48ce0215a78d8cb5b0c33e15459e130258da772837368540b188e1901b3 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/46585/p2p/12D3KooWNBn3tJ5KD1mpX3oeNK6Y4bybLQb45mqkZzGZgGKA3p61\",\"/ip4/172.18.0.10/tcp/46585/p2p/12D3KooWNBn3tJ5KD1mpX3oeNK6Y4bybLQb45mqkZzGZgGKA3p61\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWNBn3tJ5KD1mpX3oeNK6Y4bybLQb45mqkZzGZgGKA3p61\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}
+198aa52e2d67e315a2961c5bc4eaffc10c97204de86801f8ffcc02894c74ed50 -> {\"addresses\":[\"/ip4/127.0.0.1/tcp/35799/p2p/12D3KooWG6y8Kqm1PN7g3mtVJ3dnM17FGbCmdPr77LGDZZdWHs5Q\",\"/ip4/172.18.0.8/tcp/35799/p2p/12D3KooWG6y8Kqm1PN7g3mtVJ3dnM17FGbCmdPr77LGDZZdWHs5Q\"],\"connected_peers\":0,\"dht_bucket_info\":{},\"peer_id\":\"12D3KooWG6y8Kqm1PN7g3mtVJ3dnM17FGbCmdPr77LGDZZdWHs5Q\",\"provider_count\":0,\"routing_table_size\":0,\"running\":true,\"wan_active\":false}",
+    "convergence_before": "3c61761dfda06803d53944f80b301ff4eb8a07b0a7e0d5c4bcbc1497e9495ad6 -> routing=0 providers=0 connected=0
+7a00d4a035a7cd4012b7e7cc3490e223a60d8d65e86919a7815ea8550c2869aa -> routing=0 providers=0 connected=0
+d8faf489dc841212d3475a0c05dcff4b3d4284848162972287110d8a271001e2 -> routing=0 providers=0 connected=0
+e40cb6ef65da04895a5fe58052c3159bf84a9a1bb7e3a3bb0be509713c8f48eb -> routing=0 providers=0 connected=0
+56da0954321837fe83e22f05dc84ff6f922118e52db8207a85134db19b841784 -> routing=0 providers=0 connected=0
+0ce935973dccde1269766a8efe79efdcac8470eac02c82067a74a6c8ff2adbc6 -> routing=0 providers=0 connected=0
+c80b8b7c18e8f6421bb445d81e8009f07b167813dc73aa560e6c5f3a78bac2ef -> routing=0 providers=0 connected=0
+7f4a30440d56164de62686fec19d1197dd0f5ea94f619880640c154afea848e7 -> routing=0 providers=0 connected=0
+0b3ca48ce0215a78d8cb5b0c33e15459e130258da772837368540b188e1901b3 -> routing=0 providers=0 connected=0
+198aa52e2d67e315a2961c5bc4eaffc10c97204de86801f8ffcc02894c74ed50 -> routing=0 providers=0 connected=0",
+    "mass_add": "added 2 tracks to 3c61761dfda06803d53944f80b301ff4eb8a07b0a7e0d5c4bcbc1497e9495ad6
+added 2 tracks to 7a00d4a035a7cd4012b7e7cc3490e223a60d8d65e86919a7815ea8550c2869aa
+added 2 tracks to d8faf489dc841212d3475a0c05dcff4b3d4284848162972287110d8a271001e2
+added 2 tracks to e40cb6ef65da04895a5fe58052c3159bf84a9a1bb7e3a3bb0be509713c8f48eb
+added 2 tracks to 56da0954321837fe83e22f05dc84ff6f922118e52db8207a85134db19b841784
+added 2 tracks to 0ce935973dccde1269766a8efe79efdcac8470eac02c82067a74a6c8ff2adbc6
+added 2 tracks to c80b8b7c18e8f6421bb445d81e8009f07b167813dc73aa560e6c5f3a78bac2ef
+added 2 tracks to 7f4a30440d56164de62686fec19d1197dd0f5ea94f619880640c154afea848e7
+added 2 tracks to 0b3ca48ce0215a78d8cb5b0c33e15459e130258da772837368540b188e1901b3
+added 2 tracks to 198aa52e2d67e315a2961c5bc4eaffc10c97204de86801f8ffcc02894c74ed50",
+    "mass_search": "3c61761dfda06803d53944f80b301ff4eb8a07b0a7e0d5c4bcbc1497e9495ad6 search hits=0
+7a00d4a035a7cd4012b7e7cc3490e223a60d8d65e86919a7815ea8550c2869aa search hits=0
+d8faf489dc841212d3475a0c05dcff4b3d4284848162972287110d8a271001e2 search hits=0
+e40cb6ef65da04895a5fe58052c3159bf84a9a1bb7e3a3bb0be509713c8f48eb search hits=0
+56da0954321837fe83e22f05dc84ff6f922118e52db8207a85134db19b841784 search hits=0
+0ce935973dccde1269766a8efe79efdcac8470eac02c82067a74a6c8ff2adbc6 search hits=0
+c80b8b7c18e8f6421bb445d81e8009f07b167813dc73aa560e6c5f3a78bac2ef search hits=0
+7f4a30440d56164de62686fec19d1197dd0f5ea94f619880640c154afea848e7 search hits=0
+0b3ca48ce0215a78d8cb5b0c33e15459e130258da772837368540b188e1901b3 search hits=0
+198aa52e2d67e315a2961c5bc4eaffc10c97204de86801f8ffcc02894c74ed50 search hits=0",
+    "churn": "skipped",
+    "latency": "skipped",
+    "convergence_after": "3c61761dfda06803d53944f80b301ff4eb8a07b0a7e0d5c4bcbc1497e9495ad6 -> routing=0 providers=0 connected=0
+7a00d4a035a7cd4012b7e7cc3490e223a60d8d65e86919a7815ea8550c2869aa -> routing=0 providers=0 connected=0
+d8faf489dc841212d3475a0c05dcff4b3d4284848162972287110d8a271001e2 -> routing=0 providers=0 connected=0
+e40cb6ef65da04895a5fe58052c3159bf84a9a1bb7e3a3bb0be509713c8f48eb -> routing=0 providers=0 connected=0
+56da0954321837fe83e22f05dc84ff6f922118e52db8207a85134db19b841784 -> routing=0 providers=0 connected=0
+0ce935973dccde1269766a8efe79efdcac8470eac02c82067a74a6c8ff2adbc6 -> routing=0 providers=0 connected=0
+c80b8b7c18e8f6421bb445d81e8009f07b167813dc73aa560e6c5f3a78bac2ef -> routing=0 providers=0 connected=0
+7f4a30440d56164de62686fec19d1197dd0f5ea94f619880640c154afea848e7 -> routing=0 providers=0 connected=0
+0b3ca48ce0215a78d8cb5b0c33e15459e130258da772837368540b188e1901b3 -> routing=0 providers=0 connected=0
+198aa52e2d67e315a2961c5bc4eaffc10c97204de86801f8ffcc02894c74ed50 -> routing=0 providers=0 connected=0"
+  }
+}

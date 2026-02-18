@@ -48,18 +48,23 @@ build_android.bat
 
 ```bash
 ./cotune-daemon \
+  -mode server \
+  -control 0.0.0.0:8080 \
   -proto 127.0.0.1:7777 \
   -listen /ip4/0.0.0.0/tcp/0 \
   -data ./cotune_data \
-  -bootstrap /ip4/BOOTSTRAP_IP/tcp/BOOTSTRAP_PORT/p2p/BOOTSTRAP_PEER_ID \
+  -bootstrap /ip4/BOOTSTRAP_IP/udp/4001/quic-v1/p2p/BOOTSTRAP_PEER_ID \
+  -bootstrap /ip4/BOOTSTRAP_IP/tcp/4001/p2p/BOOTSTRAP_PEER_ID \
   -relay=false
 ```
 
 Флаги:
+- `-mode`: `android` или `server`
+- `-control`: адрес control API (только `server` mode)
 - `-proto`: Адрес Protobuf/gRPC сервера (localhost TCP или Unix socket путь)
 - `-listen`: libp2p listen адрес
 - `-data`: Директория для данных
-- `-bootstrap`: Опциональный bootstrap peer (multiaddr)
+- `-bootstrap`: Опциональный bootstrap peer (можно передавать несколько раз или comma-separated)
 - `-relay`: Включить relay service
 
 ## Protobuf/gRPC API

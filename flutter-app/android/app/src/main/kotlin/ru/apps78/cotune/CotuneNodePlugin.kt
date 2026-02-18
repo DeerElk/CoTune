@@ -112,8 +112,8 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         // Add bootstrap peer with stable peer ID
         // Bootstrap peer: 84.201.172.91:4001
         val bootstrapAddrs = listOf(
-            "/ip4/84.201.172.91/udp/4001/quic-v1/p2p/12D3KooWPg8PavCBcMzooYYHbnoEN5YttQng3YGABvVwkbM5gvPb",
-            "/ip4/84.201.172.91/tcp/4001/p2p/12D3KooWPg8PavCBcMzooYYHbnoEN5YttQng3YGABvVwkbM5gvPb"
+            "/ip4/84.201.172.91/udp/4001/quic-v1/p2p/12D3KooWN9yd5yKtJkAitShdz6CSD71cJ666JFEargFMWX6SaanY",
+            "/ip4/84.201.172.91/tcp/4001/p2p/12D3KooWN9yd5yKtJkAitShdz6CSD71cJ666JFEargFMWX6SaanY"
         )
         
         for (addr in bootstrapAddrs) {
@@ -136,6 +136,17 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 .start()
 
             nodeProcess.set(process)
+            scope.launch {
+                try {
+                    process.inputStream.bufferedReader().useLines { lines ->
+                        lines.forEach { line ->
+                            Log.d(TAG, "daemon: $line")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to read daemon output", e)
+                }
+            }
 
             // Wait a bit for startup
             delay(2000)
@@ -184,6 +195,8 @@ class CotuneNodePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 it.destroy()
                 if (!it.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
                     it.destroyForcibly()
+                } else {
+                    Unit
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping process", e)

@@ -1,6 +1,8 @@
 import 'package:cotune_mobile/screens/folder_screen.dart';
 import 'package:cotune_mobile/services/p2p_grpc_service.dart';
 import 'package:cotune_mobile/widgets/folder_tile.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -12,9 +14,10 @@ import '../widgets/track_tile.dart';
 import '../theme.dart';
 import '../widgets/chips_row.dart';
 import '../widgets/rounded_app_bar.dart';
-import '../utils/hash_utils.dart';
 import 'dart:async';
 import 'package:path/path.dart' as p;
+import 'player_fullscreen.dart';
+import '../services/audio_player_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -39,11 +42,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onQueryChanged(String v) {
     setState(() => _query = v);
+    debugPrint('[SearchScreen] query changed="$v"');
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
       if (_query.trim().length >= 3) {
+        debugPrint(
+          '[SearchScreen] trigger remote search query="${_query.trim()}"',
+        );
         _doRemoteSearch(_query.trim());
       } else {
+        debugPrint(
+          '[SearchScreen] skip remote search: query too short len=${_query.trim().length}',
+        );
         setState(() {
           remoteResults = [];
           remoteLoading = false;
@@ -53,6 +63,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _doRemoteSearch(String q) async {
+    debugPrint('[SearchScreen] _doRemoteSearch start query="$q"');
     setState(() {
       remoteLoading = true;
       remoteResults = [];
@@ -60,12 +71,29 @@ class _SearchScreenState extends State<SearchScreen> {
     final p2p = Provider.of<P2PGrpcService>(context, listen: false);
     try {
       final res = await p2p.search(q);
+      String myPeerId = '';
+      try {
+        final info = await p2p.generatePeerInfo();
+        myPeerId = (info['peerId'] as String? ?? '').trim();
+      } catch (_) {}
+      final filteredNetwork = res.where((r) {
+        if (myPeerId.isEmpty) return true;
+        final providers = r['providers'];
+        if (providers is List) {
+          return !providers.map((e) => e.toString()).contains(myPeerId);
+        }
+        return true;
+      }).toList();
+      debugPrint(
+        '[SearchScreen] _doRemoteSearch success results=${filteredNetwork.length}',
+      );
       setState(() {
-        remoteResults = res;
+        remoteResults = filteredNetwork;
       });
     } catch (e) {
       debugPrint('remote search error: $e');
     } finally {
+      debugPrint('[SearchScreen] _doRemoteSearch done');
       if (mounted) setState(() => remoteLoading = false);
     }
   }
@@ -74,6 +102,10 @@ class _SearchScreenState extends State<SearchScreen> {
     final storage = Provider.of<StorageService>(context);
     final localTracks = storage.allTracks();
     final localIds = localTracks.map((t) => t.id).toSet();
+    final localCtids = localTracks
+        .where((t) => (t.ctid ?? '').isNotEmpty)
+        .map((t) => t.ctid!)
+        .toSet();
 
     // Разделяем на локальные и удаленные
     final localResults = <Map<String, dynamic>>[];
@@ -81,6 +113,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
     for (final item in remoteResults) {
       final id = item['id'] as String? ?? '';
+      final ctid = item['ctid'] as String? ?? id;
+      if (ctid.isNotEmpty && localCtids.contains(ctid)) {
+        // This track is already local for this device.
+        continue;
+      }
       if (localIds.contains(id)) {
         localResults.add(item);
       } else {
@@ -157,23 +194,21 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildRemoteTrackTile(Map<String, dynamic> item) {
+    final storage = Provider.of<StorageService>(context, listen: false);
     final theme = Theme.of(context);
     final title = item['title'] as String? ?? 'Без названия';
     final artist = item['artist'] as String? ?? 'Unknown';
-    final recognized = item['recognized'] as bool? ?? true;
-    final unsigned = !recognized;
+    final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
+    final existing = ctid.isEmpty ? null : storage.findByCTID(ctid);
+    final liked = existing?.liked ?? false;
 
     return InkWell(
-      onTap: () => _downloadRemote(item),
+      onTap: () => _playRemote(item),
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(
           children: [
-            Icon(
-              unsigned ? Icons.error_outline : Icons.cloud_download,
-              color: unsigned ? Colors.orangeAccent : CotuneTheme.highlight,
-              size: 28,
-            ),
+            Icon(Icons.music_note, color: CotuneTheme.highlight, size: 28),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -202,8 +237,11 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             IconButton(
-              icon: Icon(Icons.download, color: CotuneTheme.highlight),
-              onPressed: () => _downloadRemote(item),
+              icon: Icon(
+                liked ? Icons.favorite : Icons.favorite_border,
+                color: CotuneTheme.highlight,
+              ),
+              onPressed: () => _likeRemoteTrack(item),
             ),
           ],
         ),
@@ -211,67 +249,163 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Future<void> _downloadRemote(Map<String, dynamic> item) async {
+  Future<void> _playRemote(Map<String, dynamic> item) async {
+    final storage = Provider.of<StorageService>(context, listen: false);
+    final audio = Provider.of<AudioPlayerService>(context, listen: false);
+    final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
+    final existing = ctid.isEmpty ? null : storage.findByCTID(ctid);
+    if (existing != null && existing.path.isNotEmpty) {
+      final file = File(existing.path);
+      if (!await file.exists()) {
+        await _likeRemoteTrack(item, autoplay: true);
+        return;
+      }
+      audio.setQueueFromTracks(
+        storage.allTracks().where((t) => t.liked).toList(),
+        currentId: existing.id,
+      );
+      await audio.playUri(existing.path, trackId: existing.id);
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => const PlayerFullScreenSheet(),
+        );
+      }
+      return;
+    }
+    await _likeRemoteTrack(item, autoplay: true);
+  }
+
+  Future<void> _likeRemoteTrack(
+    Map<String, dynamic> item, {
+    bool autoplay = false,
+  }) async {
     final p2p = Provider.of<P2PGrpcService>(context, listen: false);
     final storage = Provider.of<StorageService>(context, listen: false);
-    final trackId = item['id'] as String? ?? '';
-    final peerId = item['owner'] as String? ?? '';
+    final audio = Provider.of<AudioPlayerService>(context, listen: false);
+    final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
 
-    if (trackId.isEmpty) return;
+    if (ctid.isEmpty) return;
 
     try {
-      final path = await p2p.fetchFromNetwork(
-        trackId,
-        preferredPeer: peerId.isNotEmpty ? peerId : null,
-        outputPath: '',
-        maxProviders: 5,
-      );
-      final sum = await compute(computeMd5, path);
-
-      // если уже есть трек с таким checksum — просто отмечаем лайк и выходим
-      final existing = storage.findByChecksum(sum);
+      await p2p.ensureBootstrapConnected();
+      final existing = storage.findByCTID(ctid);
       if (existing != null) {
         existing.liked = true;
         await storage.updateTrack(existing);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Уже в библиотеке, отмечен как избранный'),
-            ),
+        if (autoplay) {
+          audio.setQueueFromTracks(
+            storage.allTracks().where((t) => t.liked).toList(),
+            currentId: existing.id,
           );
+          await audio.playUri(existing.path, trackId: existing.id);
+          if (mounted) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => const PlayerFullScreenSheet(),
+            );
+          }
         }
         return;
       }
 
-      final id = trackId.isNotEmpty ? trackId : await storage.createId();
+      final providersRaw = item['providers'];
+      String? preferredPeer;
+      if (providersRaw is List && providersRaw.isNotEmpty) {
+        preferredPeer = providersRaw.first.toString();
+      }
+
+      final outputPath = await _buildRemoteOutputPath(ctid);
+      String path;
+      try {
+        path = await p2p.fetchFromNetwork(
+          ctid,
+          preferredPeer: preferredPeer,
+          outputPath: outputPath,
+          maxProviders: 5,
+        );
+      } catch (_) {
+        // Retry without preferred peer when provided peer is stale/unreachable.
+        path = await p2p.fetchFromNetwork(
+          ctid,
+          outputPath: outputPath,
+          maxProviders: 5,
+        );
+      }
+      final id = ctid;
       final t = Track(
         id: id,
         title: item['title'] ?? p.basename(path),
         artist: item['artist'] ?? 'Unknown',
         path: path,
         liked: true,
-        recognized: item['recognized'] ?? true,
-        checksum: sum,
+        recognized: true,
+        sharedToNetwork: false,
+        ctid: ctid,
       );
       await storage.saveTrack(t);
 
-      await p2p.shareTrack(
-        t.id,
-        t.path,
-        title: t.title,
-        artist: t.artist,
-        recognized: t.recognized,
-        checksum: t.checksum,
-      );
+      try {
+        await p2p.shareTrack(
+          t.id,
+          t.path,
+          title: t.title,
+          artist: t.artist,
+          recognized: t.recognized,
+        );
+        t.sharedToNetwork = true;
+        await storage.updateTrack(t);
+      } catch (_) {
+        t.sharedToNetwork = false;
+        await storage.updateTrack(t);
+      }
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Скачано и сохранено')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Трек добавлен в мою музыку, скачан и опубликован в сети',
+            ),
+          ),
+        );
+      }
+
+      if (autoplay) {
+        audio.setQueueFromTracks(
+          storage.allTracks().where((tr) => tr.liked).toList(),
+          currentId: t.id,
+        );
+        await audio.playUri(t.path, trackId: t.id);
+        if (mounted) {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => const PlayerFullScreenSheet(),
+          );
+        }
       }
     } catch (e) {
       debugPrint('fetch error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось получить трек из сети: $e')),
+        );
+      }
     }
+  }
+
+  Future<String> _buildRemoteOutputPath(String ctid) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final tracksDir = Directory(p.join(appDir.path, 'cotune_tracks'));
+    if (!await tracksDir.exists()) {
+      await tracksDir.create(recursive: true);
+    }
+    return p.join(tracksDir.path, '$ctid.mp3');
   }
 
   @override
@@ -339,10 +473,19 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             const SizedBox(height: 12),
             ChipsRow(
-              leftPadding: 12,
               chips: [
                 ChoiceChip(
-                  label: const Text('Всё'),
+                  label: Text(
+                    'Всё',
+                    style: GoogleFonts.inter(
+                      color: _filter == 0
+                          ? Colors.black
+                          : theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
                   selected: _filter == 0,
                   showCheckmark: false,
                   selectedColor: headerColor,
@@ -350,7 +493,17 @@ class _SearchScreenState extends State<SearchScreen> {
                   onSelected: (_) => setState(() => _filter = 0),
                 ),
                 ChoiceChip(
-                  label: const Text('Треки'),
+                  label: Text(
+                    'Треки',
+                    style: GoogleFonts.inter(
+                      color: _filter == 1
+                          ? Colors.black
+                          : theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
                   selected: _filter == 1,
                   showCheckmark: false,
                   selectedColor: headerColor,
@@ -358,7 +511,17 @@ class _SearchScreenState extends State<SearchScreen> {
                   onSelected: (_) => setState(() => _filter = 1),
                 ),
                 ChoiceChip(
-                  label: const Text('Исполнители'),
+                  label: Text(
+                    'Исполнители',
+                    style: GoogleFonts.inter(
+                      color: _filter == 2
+                          ? Colors.black
+                          : theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
                   selected: _filter == 2,
                   showCheckmark: false,
                   selectedColor: headerColor,

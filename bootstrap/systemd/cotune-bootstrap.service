@@ -9,7 +9,8 @@ Type=simple
 # Запуск бинаря
 ExecStart=/opt/cotune/cotune-bootstrap \
   -listen /ip4/0.0.0.0/tcp/4001,/ip4/0.0.0.0/udp/4001/quic-v1 \
-  -key /var/lib/cotune-bootstrap/bootstrap.key
+  -key /var/lib/cotune-bootstrap/bootstrap.key \
+  -expect-peer-id 12D3KooWN9yd5yKtJkAitShdz6CSD71cJ666JFEargFMWX6SaanY
 
 # Рабочая директория
 WorkingDirectory=/opt/cotune

@@ -66,13 +66,6 @@ class StorageService extends ChangeNotifier {
     return PlaylistModel.fromJson(Map<String, dynamic>.from(m));
   }
 
-  Track? findByChecksum(String checksum) {
-    for (final t in allTracks()) {
-      if (t.checksum != null && t.checksum == checksum) return t;
-    }
-    return null;
-  }
-
   Track? findByCTID(String ctid) {
     for (final t in allTracks()) {
       if (t.ctid != null && t.ctid == ctid) return t;
@@ -81,11 +74,11 @@ class StorageService extends ChangeNotifier {
   }
 
   Future<void> saveTrack(Track t) async {
-    // защита от дублей по checksum
-    if (t.checksum != null) {
-      final dup = findByChecksum(t.checksum!);
+    // Guard against duplicates by canonical CTID when available.
+    if (t.ctid != null && t.ctid!.isNotEmpty) {
+      final dup = findByCTID(t.ctid!);
       if (dup != null) {
-        throw Exception('Track already exists with the same checksum');
+        throw Exception('Track already exists with the same CTID');
       }
     }
     if (_tracks.containsKey(t.id)) throw Exception('Track already exists (id)');

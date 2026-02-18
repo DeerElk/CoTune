@@ -84,6 +84,17 @@ go build -o cotune-bootstrap main.go
 - `-listen`: Comma-separated список адресов для прослушивания (default: `/ip4/0.0.0.0/tcp/4001,/ip4/0.0.0.0/udp/4001/quic-v1`)
 - `-key`: Путь к файлу приватного ключа (default: `bootstrap.key`). Ключ будет сгенерирован при первом запуске и сохранён для стабильного peer ID.
 - `-log`: Уровень логирования: `debug`, `info`, `warn`, `error` (default: `info`)
+- `-print-peer-id`: Напечатать peer ID для ключа `-key` и завершиться
+- `-expect-peer-id`: Проверить peer ID на старте (если не совпадает — процесс завершится с ошибкой)
+
+Проверка корректного peer ID перед деплоем:
+
+```bash
+./cotune-bootstrap -key /var/lib/cotune-bootstrap/bootstrap.key -print-peer-id
+```
+
+Если Android/Go peers используют старый peer ID, будет `failed to negotiate security protocol: EOF`.
+В этом случае обновите bootstrap multiaddr в клиентах на актуальный `peer_id`.
 
 ### Переменные окружения
 

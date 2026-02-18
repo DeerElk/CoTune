@@ -1,0 +1,32 @@
+services:
+  peer:
+    build: .
+    entrypoint: >
+      /bin/bash -lc "exec /app/cotune-daemon
+      -mode server
+      -control 0.0.0.0:8080
+      -listen /ip4/0.0.0.0/tcp/0
+      -bootstrap ${BOOTSTRAP_MULTIADDR:?BOOTSTRAP_MULTIADDR is required}
+      -data /data-root/$$HOSTNAME"
+    volumes:
+      - ./data:/data-root
+      - ./docker/samples:/samples:ro
+    networks:
+      - cotune-net
+    deploy:
+      replicas: 1
+    ports:
+      - "8080"
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  cotune-net:
+    driver: bridge
+

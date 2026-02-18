@@ -2,24 +2,43 @@ import 'package:flutter/material.dart';
 
 class ChipsRow extends StatelessWidget {
   final List<Widget> chips;
-  final double leftPadding;
+  final double viewportInset;
+  final double chipSpacing;
 
-  const ChipsRow({super.key, required this.chips, this.leftPadding = 12});
+  const ChipsRow({
+    super.key,
+    required this.chips,
+    this.viewportInset = 12,
+    this.chipSpacing = 8,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(left: leftPadding, right: 12),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: chips.map((w) => Padding(
-            padding: const EdgeInsets.only(right: 8), child: w),
-          ).toList(),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: viewportInset),
+                ...chips.map(
+                  (w) => Padding(
+                    padding: EdgeInsets.only(right: chipSpacing),
+                    child: w,
+                  ),
+                ),
+                SizedBox(width: viewportInset),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

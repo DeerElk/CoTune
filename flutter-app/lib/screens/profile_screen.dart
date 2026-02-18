@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cotune_mobile/widgets/modal.dart';
-import 'package:cotune_mobile/widgets/option_sheet.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,12 +25,27 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _peerInfo;
   List<String> _hosts = [];
+  Map<String, dynamic>? _networkDiag;
   bool _loading = true;
+  Timer? _diagTimer;
+  bool get _qrScanSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
   void initState() {
     super.initState();
     _initPeer();
+    _diagTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      _refreshDiagnostics();
+    });
+  }
+
+  @override
+  void dispose() {
+    _diagTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _initPeer() async {
@@ -46,6 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // AutoNetwork is automatically enabled by the daemon
       } catch (_) {}
       final info = await p2p.generatePeerInfo();
+      final networkDiag = await p2p.getNetworkDiagnostics();
       List<String> hosts = <String>[];
       try {
         hosts = await p2p.getKnownPeers();
@@ -59,6 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _peerInfo = info;
           _hosts = hosts;
+          _networkDiag = networkDiag;
         });
       }
     } catch (e) {
@@ -67,10 +85,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _peerInfo = null;
           _hosts = <String>[];
+          _networkDiag = null;
         });
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _refreshDiagnostics() async {
+    if (!mounted) return;
+    try {
+      final p2p = Provider.of<P2PGrpcService>(context, listen: false);
+      final networkDiag = await p2p.getNetworkDiagnostics();
+      final hosts = await p2p.getKnownPeers().catchError((_) => <String>[]);
+      if (!mounted) return;
+      setState(() {
+        _networkDiag = networkDiag;
+        _hosts = hosts;
+      });
+    } catch (_) {
+      // Ignore transient errors.
     }
   }
 
@@ -81,6 +116,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _scanQr() async {
+    if (!_qrScanSupported) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR-сканер доступен только на мобильных платформах'),
+          ),
+        );
+      }
+      return;
+    }
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const QRScanScreen()),
@@ -175,93 +220,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _openSettingsSheet() {
-    final appSettings = Provider.of<AppSettings>(context, listen: false);
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Consumer<AppSettings>(
+          builder: (ctx, appSettings, _) {
+            final theme = Theme.of(ctx);
+            final l10n = AppLocalizations.of(ctx)!;
+            final textColor = theme.colorScheme.onSurface;
+            const dropdownWidth = 150.0;
 
-    final textColor = theme.colorScheme.onSurface;
-    final dropdownTextColor = theme.colorScheme.onSurface;
-
-    OptionSheet.show(context, [
-      Row(
-        children: [
-          Icon(Icons.language, color: theme.iconTheme.color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              l10n.language,
-              style: GoogleFonts.inter(color: textColor),
-            ),
-          ),
-          DropdownButton<String>(
-            value: appSettings.locale.languageCode,
-            dropdownColor: theme.colorScheme.surface,
-            style: GoogleFonts.inter(color: dropdownTextColor),
-            items: [
-              DropdownMenuItem(
-                value: 'ru',
-                child: Text(
-                  l10n.russian,
-                  style: GoogleFonts.inter(color: dropdownTextColor),
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
               ),
-              DropdownMenuItem(
-                value: 'en',
-                child: Text(
-                  l10n.english,
-                  style: GoogleFonts.inter(color: dropdownTextColor),
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.language, color: theme.iconTheme.color),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.language,
+                          style: GoogleFonts.inter(color: textColor),
+                        ),
+                      ),
+                      SizedBox(
+                        width: dropdownWidth,
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: appSettings.locale.languageCode,
+                          dropdownColor: theme.colorScheme.surface,
+                          style: GoogleFonts.inter(color: textColor),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'ru',
+                              child: Text(
+                                l10n.russian,
+                                style: GoogleFonts.inter(color: textColor),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'en',
+                              child: Text(
+                                l10n.english,
+                                style: GoogleFonts.inter(color: textColor),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) appSettings.setLocale(v);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.brightness_6, color: theme.iconTheme.color),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.theme,
+                          style: GoogleFonts.inter(color: textColor),
+                        ),
+                      ),
+                      SizedBox(
+                        width: dropdownWidth,
+                        child: DropdownButton<ThemeMode>(
+                          isExpanded: true,
+                          value: appSettings.themeMode,
+                          dropdownColor: theme.colorScheme.surface,
+                          style: GoogleFonts.inter(color: textColor),
+                          items: [
+                            DropdownMenuItem(
+                              value: ThemeMode.system,
+                              child: Text(
+                                l10n.systemTheme,
+                                style: GoogleFonts.inter(color: textColor),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.dark,
+                              child: Text(
+                                l10n.darkTheme,
+                                style: GoogleFonts.inter(color: textColor),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.light,
+                              child: Text(
+                                l10n.lightTheme,
+                                style: GoogleFonts.inter(color: textColor),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) appSettings.setThemeMode(v);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
-            ],
-            onChanged: (v) {
-              if (v != null) appSettings.setLocale(v);
-            },
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Icon(Icons.brightness_6, color: theme.iconTheme.color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(l10n.theme, style: GoogleFonts.inter(color: textColor)),
-          ),
-          DropdownButton<ThemeMode>(
-            value: appSettings.themeMode,
-            dropdownColor: theme.colorScheme.surface,
-            style: GoogleFonts.inter(color: dropdownTextColor),
-            items: [
-              DropdownMenuItem(
-                value: ThemeMode.system,
-                child: Text(
-                  l10n.systemTheme,
-                  style: GoogleFonts.inter(color: dropdownTextColor),
-                ),
-              ),
-              DropdownMenuItem(
-                value: ThemeMode.dark,
-                child: Text(
-                  l10n.darkTheme,
-                  style: GoogleFonts.inter(color: dropdownTextColor),
-                ),
-              ),
-              DropdownMenuItem(
-                value: ThemeMode.light,
-                child: Text(
-                  l10n.lightTheme,
-                  style: GoogleFonts.inter(color: dropdownTextColor),
-                ),
-              ),
-            ],
-            onChanged: (v) {
-              if (v != null) appSettings.setThemeMode(v);
-            },
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-    ]);
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -318,6 +394,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
+                  _buildNetworkStatusCard(theme),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -380,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundColor: CotuneTheme.highlight,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: _scanQr,
+                          onPressed: _qrScanSupported ? _scanQr : null,
                           icon: Icon(
                             Icons.qr_code_scanner,
                             color: CotuneTheme.headerTextColor,
@@ -494,6 +572,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNetworkStatusCard(ThemeData theme) {
+    final dynamic statusRaw = _networkDiag?['status'] ?? _networkDiag;
+    final status = statusRaw is Map ? statusRaw.cast<String, dynamic>() : null;
+    final connectedPeersRaw = status?['connected_peers'];
+    final providersRaw = status?['provider_count'];
+    final routingRaw = status?['routing_table_size'];
+    final wanRaw = status?['wan_active'];
+    final diagError = (_networkDiag?['error'] as String?)?.trim();
+
+    int asInt(dynamic v) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    bool asBool(dynamic v) {
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      if (v is String) {
+        final s = v.toLowerCase().trim();
+        return s == 'true' || s == '1' || s == 'on';
+      }
+      return false;
+    }
+
+    var connectedPeers = asInt(connectedPeersRaw);
+    final providers = asInt(providersRaw);
+    final routing = asInt(routingRaw);
+    final wanActive = asBool(wanRaw);
+
+    // Fallback so UI doesn't show false zeros when /status temporarily fails.
+    if (connectedPeers == 0 && _hosts.isNotEmpty) {
+      connectedPeers = _hosts.length;
+    }
+
+    final hasDiag = status != null && (diagError == null || diagError.isEmpty);
+    final ok = connectedPeers > 0 && (hasDiag ? wanActive : true);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            ok ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+            color: ok ? Colors.lightGreenAccent : Colors.orangeAccent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Сеть: peers=$connectedPeers, providers=${hasDiag ? providers : "n/a"}, rt=${hasDiag ? routing : "n/a"}, wan=${hasDiag ? (wanActive ? "on" : "off") : "n/a"}',
+                  style: GoogleFonts.inter(
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+                if (diagError != null && diagError.isNotEmpty)
+                  Text(
+                    'diag: $diagError',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: theme.textTheme.bodySmall?.color,
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

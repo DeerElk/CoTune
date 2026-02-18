@@ -3,6 +3,7 @@ package proto
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -170,9 +171,11 @@ func (s *Server) Search(ctx context.Context, req *protoapi.SearchRequest) (*prot
 	if maxResults == 0 {
 		maxResults = 20
 	}
+	log.Printf("grpc-search-request query=%q max=%d", req.GetQuery(), maxResults)
 
 	results, err := s.daemon.Search(ctx, req.GetQuery(), maxResults)
 	if err != nil {
+		log.Printf("grpc-search-error query=%q err=%v", req.GetQuery(), err)
 		return &protoapi.SearchResponse{}, err
 	}
 
@@ -186,6 +189,7 @@ func (s *Server) Search(ctx context.Context, req *protoapi.SearchRequest) (*prot
 			Providers:  r.Providers,
 		})
 	}
+	log.Printf("grpc-search-response query=%q results=%d", req.GetQuery(), len(protoResults))
 
 	return &protoapi.SearchResponse{
 		Results: protoResults,
@@ -248,11 +252,49 @@ func (s *Server) Fetch(ctx context.Context, req *protoapi.FetchRequest) (*protoa
 
 // Share implements CotuneService.Share
 func (s *Server) Share(ctx context.Context, req *protoapi.ShareRequest) (*protoapi.ShareResponse, error) {
-	err := s.daemon.ShareTrack(ctx, req.GetTrackId())
-	if err != nil {
+	trackID := req.GetTrackId()
+	err := s.daemon.ShareTrack(ctx, trackID)
+	if err == nil {
+		return &protoapi.ShareResponse{
+			Success: true,
+			Path:    req.GetPath(),
+		}, nil
+	}
+
+	// Desktop/mobile UI keeps its own local track DB and may send a track ID
+	// unknown to daemon storage. Fallback: import by path, then share.
+	path := strings.TrimSpace(req.GetPath())
+	if path == "" {
 		return &protoapi.ShareResponse{
 			Success: false,
 			Error:   err.Error(),
+		}, nil
+	}
+
+	title := req.GetTitle()
+	artist := req.GetArtist()
+	// Preserve UX invariant: unrecognized tracks must not be shared automatically.
+	if !req.GetRecognized() {
+		title = ""
+		artist = ""
+	}
+	track, addErr := s.daemon.AddTrack(ctx, path, title, artist)
+	if addErr != nil {
+		return &protoapi.ShareResponse{
+			Success: false,
+			Error:   fmt.Sprintf("share failed (%v); add fallback failed (%v)", err, addErr),
+		}, nil
+	}
+
+	shareErr := s.daemon.ShareTrack(ctx, track.ID)
+	if shareErr != nil {
+		shareMsg := shareErr.Error()
+		if strings.Contains(shareMsg, "ffmpeg not found") {
+			shareMsg = "CTID calculation failed: this file format requires ffmpeg. On Android use MP3/WAV or install build with bundled ffmpeg."
+		}
+		return &protoapi.ShareResponse{
+			Success: false,
+			Error:   fmt.Sprintf("share failed for imported track %s: %s", track.ID, shareMsg),
 		}, nil
 	}
 

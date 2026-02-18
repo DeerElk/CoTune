@@ -25,6 +25,8 @@ type Service struct {
 	running bool
 	ctx     context.Context
 	cancel  context.CancelFunc
+	// onProcessed is called after successful processing and save.
+	onProcessed func(context.Context, *models.Track)
 }
 
 // New creates a new CTR service
@@ -123,7 +125,21 @@ func (s *Service) ProcessTrack(ctx context.Context, track *models.Track) error {
 		}
 	}
 
+	s.mu.RLock()
+	onProcessed := s.onProcessed
+	s.mu.RUnlock()
+	if onProcessed != nil {
+		onProcessed(ctx, track)
+	}
+
 	return nil
+}
+
+// SetOnProcessed sets a callback triggered after successful ProcessTrack.
+func (s *Service) SetOnProcessed(fn func(context.Context, *models.Track)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onProcessed = fn
 }
 
 func (s *Service) worker() {

@@ -27,7 +27,7 @@ class BottomNav extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -91,12 +91,12 @@ class _NavButton extends StatelessWidget {
     final active = index == currentIndex;
 
     final bg = active
-        ? CotuneTheme.highlight.withOpacity(0.12)
+        ? CotuneTheme.highlight.withValues(alpha: 0.12)
         : Colors.transparent;
 
     final iconColor = active
         ? CotuneTheme.highlight
-        : theme.iconTheme.color?.withOpacity(0.85);
+        : theme.iconTheme.color?.withValues(alpha: 0.85);
 
     return Semantics(
       button: true,

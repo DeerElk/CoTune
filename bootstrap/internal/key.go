@@ -12,9 +12,9 @@ import (
 
 const defaultKeyFileName = "bootstrap.key"
 
-// loadOrGenerateKey loads an existing private key from file, or generates a new one
+// LoadOrGenerateKey loads an existing private key from file, or generates a new one
 // and saves it. This ensures the bootstrap peer has a stable peer ID across restarts.
-func loadOrGenerateKey(keyPath string) (crypto.PrivKey, error) {
+func LoadOrGenerateKey(keyPath string) (crypto.PrivKey, error) {
 	// If keyPath is empty, use default filename in current directory
 	if keyPath == "" {
 		keyPath = defaultKeyFileName
@@ -65,4 +65,9 @@ func loadOrGenerateKey(keyPath string) (crypto.PrivKey, error) {
 	}
 
 	return privKey, nil
+}
+
+// Backward-compatible wrapper for existing callers.
+func loadOrGenerateKey(keyPath string) (crypto.PrivKey, error) {
+	return LoadOrGenerateKey(keyPath)
 }

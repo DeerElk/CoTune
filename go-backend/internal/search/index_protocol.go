@@ -23,13 +23,20 @@ type IndexQueryRequest struct {
 	Token string `json:"token"`
 }
 
-// IndexQueryResponse represents a response with CTIDs for a token
-type IndexQueryResponse struct {
-	CTIDs []string `json:"ctids"`
+// IndexTrackHint carries metadata for a CTID from a remote peer.
+type IndexTrackHint struct {
+	CTID   string `json:"ctid"`
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
 }
 
-// QueryPeerIndex queries a peer's local index for a token
-func QueryPeerIndex(ctx context.Context, h host.Host, peerID peer.ID, token string) ([]string, error) {
+// IndexQueryResponse represents a response with tracks for a token.
+type IndexQueryResponse struct {
+	Tracks []IndexTrackHint `json:"tracks"`
+}
+
+// QueryPeerIndex queries a peer's local index for a token and returns CTID hints.
+func QueryPeerIndex(ctx context.Context, h host.Host, peerID peer.ID, token string) ([]IndexTrackHint, error) {
 	// Connect if not connected
 	if h.Network().Connectedness(peerID) != network.Connected {
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -60,7 +67,7 @@ func QueryPeerIndex(ctx context.Context, h host.Host, peerID peer.ID, token stri
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	return resp.CTIDs, nil
+	return resp.Tracks, nil
 }
 
 // HandleIndexQuery handles incoming index query requests
@@ -81,8 +88,46 @@ func (s *Service) HandleIndexQuery(stream network.Stream) {
 	}
 	s.mu.RUnlock()
 
+	// Fallback: rebuild candidates from persistent storage when in-memory index
+	// is temporarily stale (e.g. after restarts).
+	if len(ctids) == 0 {
+		if tracks, err := s.store.FindTracksByToken(req.Token); err == nil {
+			seen := make(map[string]struct{}, len(tracks))
+			for _, tr := range tracks {
+				if tr == nil || tr.CTID == "" || !tr.Recognized {
+					continue
+				}
+				if _, ok := seen[tr.CTID]; ok {
+					continue
+				}
+				seen[tr.CTID] = struct{}{}
+				ctids = append(ctids, tr.CTID)
+			}
+		}
+	}
+
+	tracks := make([]IndexTrackHint, 0, len(ctids))
+	for _, ctid := range ctids {
+		hint := IndexTrackHint{
+			CTID:   ctid,
+			Title:  "Unknown",
+			Artist: "Unknown",
+		}
+		if track, err := s.store.FindTrackByCTID(ctid); err == nil && track != nil {
+			if track.Title != "" {
+				hint.Title = track.Title
+			}
+			if track.Artist != "" {
+				hint.Artist = track.Artist
+			}
+		}
+		tracks = append(tracks, hint)
+	}
+
 	// Send response
-	resp := IndexQueryResponse{CTIDs: ctids}
+	resp := IndexQueryResponse{
+		Tracks: tracks,
+	}
 	writeJSON(stream, resp)
 }
 

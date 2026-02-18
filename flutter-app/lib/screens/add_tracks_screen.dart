@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:cotune_mobile/services/p2p_grpc_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:crypto/crypto.dart' as crypto;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,11 +12,6 @@ import '../l10n/app_localizations.dart';
 import '../services/storage_service.dart';
 import '../models/track.dart';
 import '../widgets/rounded_app_bar.dart';
-
-Future<String> _computeMd5(String path) async {
-  final bytes = await File(path).readAsBytes();
-  return crypto.md5.convert(bytes).toString();
-}
 
 class AddTracksScreen extends StatefulWidget {
   const AddTracksScreen({super.key});
@@ -74,25 +68,17 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
           f.path!,
           f.name,
         ); // IO — async, not on UI thread
-        final sum = await compute(_computeMd5, target);
-        final dup = storage.findByChecksum(sum) != null;
-        if (dup) {
-          try {
-            await File(target).delete();
-          } catch (_) {}
-          continue;
-        }
         final meta = null;
-        final titleCandidate =
-            meta?['title']?.toString() ?? p.basenameWithoutExtension(f.name);
-        final artistCandidate = meta?['artist']?.toString() ?? 'Unknown Artist';
+        final titleFallback = p.basenameWithoutExtension(f.name);
+        final artistFallback = 'Unknown Artist';
         final recognized =
             meta != null &&
             (meta['title'] != null) &&
             (meta['title'].toString().trim().isNotEmpty);
+        final titleCandidate = meta?['title']?.toString() ?? titleFallback;
+        final artistCandidate = meta?['artist']?.toString() ?? artistFallback;
 
-        // используем checksum как стабильный trackId для дедупликации в P2P
-        final id = sum.isNotEmpty ? sum : await storage.createId();
+        final id = await storage.createId();
 
         final track = Track(
           id: id,
@@ -101,23 +87,31 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
           path: target,
           liked: true,
           recognized: recognized,
-          checksum: sum,
+          sharedToNetwork: false,
         );
 
         await storage.saveTrack(track);
 
-        try {
-          await p2p.shareTrack(
-            track.id,
-            track.path,
-            title: track.title,
-            artist: track.artist,
-            recognized: track.recognized,
-            checksum: track.checksum,
-          );
-        } catch (e) {
-          // share не критичен — логируем и продолжаем
-          debugPrint('shareTrack failed for ${track.id}: $e');
+        if (track.recognized) {
+          try {
+            await p2p.shareTrack(
+              track.id,
+              track.path,
+              title: track.title,
+              artist: track.artist,
+              recognized: true,
+            );
+            track.sharedToNetwork = true;
+            await storage.updateTrack(track);
+          } catch (e) {
+            track.sharedToNetwork = false;
+            await storage.updateTrack(track);
+            // share не критичен — логируем и продолжаем
+            debugPrint('shareTrack failed for ${track.id}: $e');
+          }
+        } else {
+          track.sharedToNetwork = false;
+          await storage.updateTrack(track);
         }
       } catch (e) {
         debugPrint('Import error: $e');

@@ -66,18 +66,28 @@ class QRService {
   /// Поделиться QR-изображением + текстом.
   /// Fallback: если не удалось — пробует текст, затем копирует в буфер.
   static Future<void> shareQr(
-    BuildContext ctx,
-    String data, {
-    int size = 1000,
-  }) async {
+      BuildContext ctx,
+      String data, {
+        int size = 1000,
+      }) async {
     try {
       final file = await saveQrToTempFile(data, size: size);
       final xfile = XFile(file.path, mimeType: 'image/png');
-      await Share.shareXFiles([xfile], text: data);
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xfile],
+          text: data,
+        ),
+      );
       return;
     } catch (_) {
       try {
-        await Share.share(data);
+        await SharePlus.instance.share(
+          ShareParams(
+            text: data,
+          ),
+        );
         return;
       } catch (_) {
         await Clipboard.setData(ClipboardData(text: data));

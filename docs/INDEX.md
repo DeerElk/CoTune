@@ -20,26 +20,14 @@
    - Использование в Go/Kotlin/Dart
    - Миграция с HTTP
 
-## Техническая документация
-
-4. **[TZ Compliance](TZ_COMPLIANCE_CHECK.md)** - Соответствие ТЗ
-   - Проверка всех требований
-   - Статус реализации
-   - Известные ограничения
-
-5. **[Migration Guide](MIGRATION_PROTOBUF.md)** - Миграция на Protobuf
-   - Статус миграции
-   - Инструкции для Kotlin
-   - Инструкции для Dart
-
 ## Отчеты и статусы
 
-6. **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Сводка реализации
-7. **[Final Status](FINAL_STATUS_2024.md)** - Финальный статус проекта (100% соответствие ТЗ)
+4. **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Сводка реализации
+5. **[Docker Test Network](../go-backend/README_docker.md)** - Локальная сеть для нагрузочных/интеграционных тестов
 
 ## Быстрая навигация
 
 - **Новичок?** Начните с [Architecture](ARCHITECTURE.md)
 - **Собираете для Android?** См. [Android Build](ANDROID_BUILD.md)
 - **Работаете с IPC?** См. [Protobuf IPC](PROTOBUF_IPC.md)
-- **Проверяете соответствие ТЗ?** См. [TZ Compliance](TZ_COMPLIANCE_CHECK.md)
+- **Тестируете P2P без Android?** См. [Docker Test Network](../go-backend/README_docker.md)

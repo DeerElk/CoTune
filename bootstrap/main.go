@@ -22,6 +22,8 @@ var (
 	listenAddrs = flag.String("listen", "/ip4/0.0.0.0/tcp/4001,/ip4/0.0.0.0/udp/4001/quic-v1", "Comma-separated listen addresses")
 	keyPath     = flag.String("key", "bootstrap.key", "Path to private key file (will be generated if doesn't exist)")
 	logLevel    = flag.String("log", "info", "Log level: debug, info, warn, error")
+	printPeerID = flag.Bool("print-peer-id", false, "Print peer ID derived from -key and exit")
+	expectPeerID = flag.String("expect-peer-id", "", "Fail startup if actual peer ID doesn't match this value")
 )
 
 func main() {
@@ -29,6 +31,19 @@ func main() {
 
 	// Setup logging
 	setupLogging(*logLevel)
+
+	if *printPeerID {
+		priv, err := internal.LoadOrGenerateKey(*keyPath)
+		if err != nil {
+			log.Fatalf("Failed to load key: %v", err)
+		}
+		pid, err := peer.IDFromPrivateKey(priv)
+		if err != nil {
+			log.Fatalf("Failed to derive peer ID: %v", err)
+		}
+		fmt.Println(pid.String())
+		return
+	}
 
 	log.Println("=== CoTune Bootstrap Peer ===")
 	log.Println("This is a temporary bootstrap node for initial network discovery.")
@@ -54,6 +69,9 @@ func main() {
 	defer h.Close()
 
 	log.Printf("Peer ID: %s", h.ID().String())
+	if *expectPeerID != "" && h.ID().String() != *expectPeerID {
+		log.Fatalf("Peer ID mismatch: expected=%s actual=%s", *expectPeerID, h.ID().String())
+	}
 	log.Println("(This peer ID is stable across restarts thanks to persistent key)")
 	log.Printf("Addresses:")
 	for _, addr := range h.Addrs() {
