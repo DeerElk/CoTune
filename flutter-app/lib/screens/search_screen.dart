@@ -4,7 +4,6 @@ import 'package:cotune_mobile/widgets/folder_tile.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../l10n/app_localizations.dart';
@@ -100,6 +99,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchResults() {
     final storage = Provider.of<StorageService>(context);
+    final l10n = AppLocalizations.of(context)!;
     final localTracks = storage.allTracks();
     final localIds = localTracks.map((t) => t.id).toSet();
     final localCtids = localTracks
@@ -145,7 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
         localResults.isEmpty) {
       return Center(
         child: Text(
-          'Ничего не найдено',
+          l10n.noResults,
           style: GoogleFonts.inter(
             color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
@@ -159,7 +159,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
-              'В сети',
+              l10n.searchSectionNetwork,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).textTheme.bodyLarge?.color,
@@ -173,7 +173,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(
-                'Локальные',
+                l10n.searchSectionLocal,
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).textTheme.bodyLarge?.color,
@@ -195,9 +195,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildRemoteTrackTile(Map<String, dynamic> item) {
     final storage = Provider.of<StorageService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final title = item['title'] as String? ?? 'Без названия';
-    final artist = item['artist'] as String? ?? 'Unknown';
+    final title = item['title'] as String? ?? l10n.untitledTrack;
+    final artist = item['artist'] as String? ?? l10n.unknownArtist;
     final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
     final existing = ctid.isEmpty ? null : storage.findByCTID(ctid);
     final liked = existing?.liked ?? false;
@@ -252,30 +253,81 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _playRemote(Map<String, dynamic> item) async {
     final storage = Provider.of<StorageService>(context, listen: false);
     final audio = Provider.of<AudioPlayerService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
     final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
     final existing = ctid.isEmpty ? null : storage.findByCTID(ctid);
     if (existing != null && existing.path.isNotEmpty) {
       final file = File(existing.path);
       if (!await file.exists()) {
-        await _likeRemoteTrack(item, autoplay: true);
+        await _previewRemoteTrack(item);
         return;
       }
       audio.setQueueFromTracks(
         storage.allTracks().where((t) => t.liked).toList(),
         currentId: existing.id,
       );
-      await audio.playUri(existing.path, trackId: existing.id);
-      if (mounted) {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => const PlayerFullScreenSheet(),
-        );
+      final started = await audio.playUri(existing.path, trackId: existing.id);
+      if (started && mounted) {
+        PlayerFullScreenSheet.open(context);
       }
       return;
     }
-    await _likeRemoteTrack(item, autoplay: true);
+    final started = await _previewRemoteTrack(item);
+    if (!started && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.searchRemoteFetchFailed('preview_failed'))),
+      );
+    }
+  }
+
+  Future<bool> _previewRemoteTrack(Map<String, dynamic> item) async {
+    final p2p = Provider.of<P2PGrpcService>(context, listen: false);
+    final audio = Provider.of<AudioPlayerService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
+    final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
+    if (ctid.isEmpty) return false;
+
+    try {
+      await p2p.ensureBootstrapConnected();
+
+      final providersRaw = item['providers'];
+      String? preferredPeer;
+      if (providersRaw is List && providersRaw.isNotEmpty) {
+        preferredPeer = providersRaw.first.toString();
+      }
+
+      final outputPath = await _buildPreviewOutputPath(ctid);
+      final previewFile = File(outputPath);
+      String path = outputPath;
+      if (!await previewFile.exists() || await previewFile.length() == 0) {
+        try {
+          path = await p2p.fetchFromNetwork(
+            ctid,
+            preferredPeer: preferredPeer,
+            outputPath: outputPath,
+            maxProviders: 5,
+          );
+        } catch (_) {
+          path = await p2p.fetchFromNetwork(
+            ctid,
+            outputPath: outputPath,
+            maxProviders: 5,
+          );
+        }
+      }
+
+      final title = (item['title'] as String?)?.trim();
+      final artist = (item['artist'] as String?)?.trim();
+      return await audio.playUri(
+        path,
+        trackId: null,
+        title: (title == null || title.isEmpty) ? l10n.untitledTrack : title,
+        artist: artist,
+      );
+    } catch (e) {
+      debugPrint('preview fetch/play error: $e');
+      return false;
+    }
   }
 
   Future<void> _likeRemoteTrack(
@@ -285,6 +337,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final p2p = Provider.of<P2PGrpcService>(context, listen: false);
     final storage = Provider.of<StorageService>(context, listen: false);
     final audio = Provider.of<AudioPlayerService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
     final ctid = item['ctid'] as String? ?? item['id'] as String? ?? '';
 
     if (ctid.isEmpty) return;
@@ -300,14 +353,12 @@ class _SearchScreenState extends State<SearchScreen> {
             storage.allTracks().where((t) => t.liked).toList(),
             currentId: existing.id,
           );
-          await audio.playUri(existing.path, trackId: existing.id);
-          if (mounted) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => const PlayerFullScreenSheet(),
-            );
+          final started = await audio.playUri(
+            existing.path,
+            trackId: existing.id,
+          );
+          if (started && mounted) {
+            PlayerFullScreenSheet.open(context);
           }
         }
         return;
@@ -320,27 +371,38 @@ class _SearchScreenState extends State<SearchScreen> {
       }
 
       final outputPath = await _buildRemoteOutputPath(ctid);
-      String path;
-      try {
-        path = await p2p.fetchFromNetwork(
-          ctid,
-          preferredPeer: preferredPeer,
-          outputPath: outputPath,
-          maxProviders: 5,
-        );
-      } catch (_) {
-        // Retry without preferred peer when provided peer is stale/unreachable.
-        path = await p2p.fetchFromNetwork(
-          ctid,
-          outputPath: outputPath,
-          maxProviders: 5,
-        );
+      final outputFile = File(outputPath);
+      final previewPath = await _buildPreviewOutputPath(ctid);
+      final previewFile = File(previewPath);
+      String path = outputPath;
+
+      if (await outputFile.exists() && await outputFile.length() > 0) {
+        path = outputPath;
+      } else if (await previewFile.exists() && await previewFile.length() > 0) {
+        await previewFile.copy(outputPath);
+        path = outputPath;
+      } else {
+        try {
+          path = await p2p.fetchFromNetwork(
+            ctid,
+            preferredPeer: preferredPeer,
+            outputPath: outputPath,
+            maxProviders: 5,
+          );
+        } catch (_) {
+          // Retry without preferred peer when provided peer is stale/unreachable.
+          path = await p2p.fetchFromNetwork(
+            ctid,
+            outputPath: outputPath,
+            maxProviders: 5,
+          );
+        }
       }
       final id = ctid;
       final t = Track(
         id: id,
         title: item['title'] ?? p.basename(path),
-        artist: item['artist'] ?? 'Unknown',
+        artist: item['artist'] ?? l10n.unknownArtist,
         path: path,
         liked: true,
         recognized: true,
@@ -366,11 +428,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Трек добавлен в мою музыку, скачан и опубликован в сети',
-            ),
-          ),
+          SnackBar(content: Text(l10n.searchRemoteAddedAndShared)),
         );
       }
 
@@ -379,21 +437,16 @@ class _SearchScreenState extends State<SearchScreen> {
           storage.allTracks().where((tr) => tr.liked).toList(),
           currentId: t.id,
         );
-        await audio.playUri(t.path, trackId: t.id);
-        if (mounted) {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => const PlayerFullScreenSheet(),
-          );
+        final started = await audio.playUri(t.path, trackId: t.id);
+        if (started && mounted) {
+          PlayerFullScreenSheet.open(context);
         }
       }
     } catch (e) {
       debugPrint('fetch error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось получить трек из сети: $e')),
+          SnackBar(content: Text(l10n.searchRemoteFetchFailed(e))),
         );
       }
     }
@@ -406,6 +459,15 @@ class _SearchScreenState extends State<SearchScreen> {
       await tracksDir.create(recursive: true);
     }
     return p.join(tracksDir.path, '$ctid.mp3');
+  }
+
+  Future<String> _buildPreviewOutputPath(String ctid) async {
+    final tempDir = await getTemporaryDirectory();
+    final previewDir = Directory(p.join(tempDir.path, 'cotune_preview'));
+    if (!await previewDir.exists()) {
+      await previewDir.create(recursive: true);
+    }
+    return p.join(previewDir.path, '$ctid.preview.mp3');
   }
 
   @override
@@ -476,7 +538,7 @@ class _SearchScreenState extends State<SearchScreen> {
               chips: [
                 ChoiceChip(
                   label: Text(
-                    'Всё',
+                    l10n.searchFilterAll,
                     style: GoogleFonts.inter(
                       color: _filter == 0
                           ? Colors.black
@@ -494,7 +556,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 ChoiceChip(
                   label: Text(
-                    'Треки',
+                    l10n.searchFilterTracks,
                     style: GoogleFonts.inter(
                       color: _filter == 1
                           ? Colors.black
@@ -512,7 +574,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 ChoiceChip(
                   label: Text(
-                    'Исполнители',
+                    l10n.searchFilterArtists,
                     style: GoogleFonts.inter(
                       color: _filter == 2
                           ? Colors.black

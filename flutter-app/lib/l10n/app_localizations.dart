@@ -307,6 +307,371 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy address'**
   String get copyAddressTooltip;
+
+  /// No description provided for @searchFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get searchFilterAll;
+
+  /// No description provided for @searchFilterTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get searchFilterTracks;
+
+  /// No description provided for @searchFilterArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get searchFilterArtists;
+
+  /// No description provided for @searchSectionNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'In network'**
+  String get searchSectionNetwork;
+
+  /// No description provided for @searchSectionLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get searchSectionLocal;
+
+  /// No description provided for @searchRemoteAddedAndShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Track added to My Music, downloaded, and shared to network'**
+  String get searchRemoteAddedAndShared;
+
+  /// No description provided for @searchRemoteFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to fetch track from network: {error}'**
+  String searchRemoteFetchFailed(Object error);
+
+  /// No description provided for @untitledTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get untitledTrack;
+
+  /// No description provided for @unknownArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknownArtist;
+
+  /// No description provided for @myMusicFilterTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get myMusicFilterTracks;
+
+  /// No description provided for @myMusicFilterArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get myMusicFilterArtists;
+
+  /// No description provided for @myMusicFilterPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get myMusicFilterPlaylists;
+
+  /// No description provided for @myMusicFilterUnsigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsigned'**
+  String get myMusicFilterUnsigned;
+
+  /// No description provided for @myMusicNoLikedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No liked tracks yet'**
+  String get myMusicNoLikedTracks;
+
+  /// No description provided for @myMusicNoArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'No artists'**
+  String get myMusicNoArtists;
+
+  /// No description provided for @myMusicNoPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlists yet'**
+  String get myMusicNoPlaylists;
+
+  /// No description provided for @myMusicNoUnsignedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No unsigned tracks'**
+  String get myMusicNoUnsignedTracks;
+
+  /// No description provided for @myMusicAddPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Add playlist'**
+  String get myMusicAddPlaylist;
+
+  /// No description provided for @myMusicAddPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add playlist'**
+  String get myMusicAddPlaylistTitle;
+
+  /// No description provided for @myMusicPlaylistNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get myMusicPlaylistNameHint;
+
+  /// No description provided for @myMusicCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get myMusicCreate;
+
+  /// No description provided for @myMusicTracksCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} track(s)'**
+  String myMusicTracksCount(Object count);
+
+  /// No description provided for @profileQrScannerMobileOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scanner is available only on mobile platforms'**
+  String get profileQrScannerMobileOnly;
+
+  /// No description provided for @profileNetworkStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Network: peers={peers}, providers={providers}, rt={routing}, wan={wan}'**
+  String profileNetworkStatus(
+    Object peers,
+    Object providers,
+    Object routing,
+    Object wan,
+  );
+
+  /// No description provided for @profileDiagMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'diag: {error}'**
+  String profileDiagMessage(Object error);
+
+  /// No description provided for @valueNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'n/a'**
+  String get valueNotAvailable;
+
+  /// No description provided for @valueOn.
+  ///
+  /// In en, this message translates to:
+  /// **'on'**
+  String get valueOn;
+
+  /// No description provided for @valueOff.
+  ///
+  /// In en, this message translates to:
+  /// **'off'**
+  String get valueOff;
+
+  /// No description provided for @trackPublishedToNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Published to network'**
+  String get trackPublishedToNetwork;
+
+  /// No description provided for @trackNotPublishedToNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Not published'**
+  String get trackNotPublishedToNetwork;
+
+  /// No description provided for @trackPublishedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Track published to P2P network'**
+  String get trackPublishedSuccess;
+
+  /// No description provided for @trackPublishError.
+  ///
+  /// In en, this message translates to:
+  /// **'Track publish error: {error}'**
+  String trackPublishError(Object error);
+
+  /// No description provided for @trackMenuAddToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to playlist'**
+  String get trackMenuAddToPlaylist;
+
+  /// No description provided for @trackMenuSaveToFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to files'**
+  String get trackMenuSaveToFiles;
+
+  /// No description provided for @trackMenuGoToArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to artist'**
+  String get trackMenuGoToArtist;
+
+  /// No description provided for @trackMenuManualTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag manually'**
+  String get trackMenuManualTag;
+
+  /// No description provided for @trackAddToPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to playlist'**
+  String get trackAddToPlaylistTitle;
+
+  /// No description provided for @trackAddToPlaylistConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get trackAddToPlaylistConfirm;
+
+  /// No description provided for @trackAddedToPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Track(s) added to playlists'**
+  String get trackAddedToPlaylists;
+
+  /// No description provided for @trackManualTagTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag manually'**
+  String get trackManualTagTitle;
+
+  /// No description provided for @trackManualTagNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get trackManualTagNameLabel;
+
+  /// No description provided for @trackManualTagArtistLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get trackManualTagArtistLabel;
+
+  /// No description provided for @trackManualTagSavedAndPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Track metadata updated and published'**
+  String get trackManualTagSavedAndPublished;
+
+  /// No description provided for @trackManualTagSavePublishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Data updated, but publish failed: {error}'**
+  String trackManualTagSavePublishFailed(Object error);
+
+  /// No description provided for @trackSourceFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Source file not found'**
+  String get trackSourceFileNotFound;
+
+  /// No description provided for @trackSavedLocally.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved locally: {path}'**
+  String trackSavedLocally(Object path);
+
+  /// No description provided for @trackSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Save error: {error}'**
+  String trackSaveError(Object error);
+
+  /// No description provided for @folderDefaultPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get folderDefaultPlaylistTitle;
+
+  /// No description provided for @folderRenamePlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename playlist'**
+  String get folderRenamePlaylistTitle;
+
+  /// No description provided for @folderDeletePlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete playlist?'**
+  String get folderDeletePlaylistTitle;
+
+  /// No description provided for @folderDeletePlaylistMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist \"{name}\" will be deleted.'**
+  String folderDeletePlaylistMessage(Object name);
+
+  /// No description provided for @folderDeletePlaylistConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get folderDeletePlaylistConfirm;
+
+  /// No description provided for @folderNoLikedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No liked tracks'**
+  String get folderNoLikedTracks;
+
+  /// No description provided for @folderTracksAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks added'**
+  String get folderTracksAdded;
+
+  /// No description provided for @addTracksNoFilesSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No files selected'**
+  String get addTracksNoFilesSelected;
+
+  /// No description provided for @addTracksPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick'**
+  String get addTracksPick;
+
+  /// No description provided for @addTracksImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get addTracksImport;
+
+  /// No description provided for @addTracksImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing...'**
+  String get addTracksImporting;
+
+  /// No description provided for @addTracksSomeFilesNotImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files were not imported ({count})'**
+  String addTracksSomeFilesNotImported(Object count);
+
+  /// No description provided for @qrShareFallbackCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Share failed - peer info copied to clipboard'**
+  String get qrShareFallbackCopied;
 }
 
 class _AppLocalizationsDelegate

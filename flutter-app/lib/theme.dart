@@ -72,6 +72,33 @@ class CotuneModalTheme extends ThemeExtension<CotuneModalTheme> {
 class CotuneTheme {
   static const Color highlight = Color(0xFF28D5D1);
   static const Color headerTextColor = Colors.black;
+  static const Color statusSuccess = Colors.lightGreenAccent;
+  static const Color statusWarning = Colors.orangeAccent;
+
+  static Color panelBackground(ThemeData theme) {
+    if (theme.brightness == Brightness.dark) {
+      return Color.alphaBlend(
+        Colors.black.withValues(alpha: 0.22),
+        theme.colorScheme.surfaceContainerHighest,
+      );
+    }
+    return theme.colorScheme.surface;
+  }
+
+  static Color panelBorder(ThemeData theme) {
+    if (theme.brightness == Brightness.dark) {
+      return theme.colorScheme.onSurface.withValues(alpha: 0.12);
+    }
+    return Colors.transparent;
+  }
+
+  static Color panelShadow() {
+    return Colors.black.withValues(alpha: 0.38);
+  }
+
+  static Color playerPrimaryControlIcon(ThemeData theme) {
+    return theme.brightness == Brightness.dark ? Colors.black87 : Colors.white;
+  }
 
   // ---------------- LIGHT ----------------
 
@@ -83,8 +110,8 @@ class CotuneTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: highlight,
       brightness: Brightness.light,
-      background: Colors.white,
       surface: const Color(0xFFF6F7FB),
+      primary: highlight,
       onPrimary: headerTextColor,
     );
 
@@ -92,6 +119,9 @@ class CotuneTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
       textTheme: textTheme,
+      bottomSheetTheme: const BottomSheetThemeData(
+        constraints: BoxConstraints(maxWidth: double.infinity),
+      ),
 
       extensions: [
         const CotuneModalTheme(
@@ -109,8 +139,8 @@ class CotuneTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: highlight,
-          foregroundColor: headerTextColor,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -126,22 +156,21 @@ class CotuneTheme {
 
     final textTheme = GoogleFonts.manropeTextTheme(base.textTheme);
 
-    final colorScheme = ColorScheme(
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: highlight,
       brightness: Brightness.dark,
-      primary: Colors.white,
-      onPrimary: Colors.black,
-      secondary: const Color(0xFFB3B3B3),
-      onSecondary: Colors.white,
       surface: const Color(0xFF121212),
-      onSurface: Colors.white,
-      error: Colors.redAccent,
-      onError: Colors.white,
+      primary: highlight,
+      onPrimary: headerTextColor,
     );
 
     return base.copyWith(
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
       textTheme: textTheme,
+      bottomSheetTheme: const BottomSheetThemeData(
+        constraints: BoxConstraints(maxWidth: double.infinity),
+      ),
 
       extensions: [
         const CotuneModalTheme(
@@ -159,8 +188,8 @@ class CotuneTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: highlight,
-          foregroundColor: headerTextColor,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

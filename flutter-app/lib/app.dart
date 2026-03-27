@@ -53,7 +53,8 @@ class CotuneApp extends StatelessWidget {
       child: Consumer<AppSettings>(
         builder: (context, appSettings, _) {
           return MaterialApp(
-            title: 'CoTune',
+            onGenerateTitle: (context) =>
+                AppLocalizations.of(context)!.appTitle,
             theme: CotuneTheme.lightTheme(),
             darkTheme: CotuneTheme.darkTheme(),
             debugShowCheckedModeBanner: false,

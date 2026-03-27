@@ -1,20 +1,44 @@
-# CoTune Documentation
+# Документация CoTune
 
-## Структура документации
+Этот документ - единая точка входа по всей документации проекта.
+Все рабочие материалы и эксплуатационные инструкции находятся только в `docs/`.
 
-- **[Architecture](ARCHITECTURE.md)** - Архитектура системы
-- **[Android Build](ANDROID_BUILD.md)** - Инструкции по сборке для Android
-- **[Protobuf IPC](PROTOBUF_IPC.md)** - Протокол IPC через Protobuf/gRPC
-- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Краткая сводка статуса реализации
-- **[Index](INDEX.md)** - Навигация по документации
+## С чего начать
 
-## Быстрый старт
+### Для разработчика
 
-1. Прочитайте [Architecture](ARCHITECTURE.md) для понимания системы
-2. Следуйте [Android Build](ANDROID_BUILD.md) для сборки
-3. Ознакомьтесь с [Protobuf IPC](PROTOBUF_IPC.md) для работы с IPC
-4. Для локального тестирования сети используйте `go-backend/README_docker.md`
+1. Прочитайте [архитектуру](architecture/architecture.md).
+2. Ознакомьтесь с [IPC API](api/protobuf-ipc.md).
+3. Выберите платформенный гайд:
+   - [Android](guides/android-build.md)
+   - [Windows](guides/windows-build.md)
 
-## Статус проекта
+### Для QA
 
-Текущий фокус: интеграционные тесты в Docker и стабилизация bootstrap discovery.
+1. Поднимите локальную тест-сеть по [гайду Docker-тестирования](testing/docker-test-network.md).
+2. Проверьте типовые проблемы в [документе по диагностике](operations/troubleshooting.md).
+3. Используйте [релизный чеклист](release/release-checklist.md) для предрелизной проверки.
+
+### Для Ops
+
+1. Настройте bootstrap-peer по [операционному гайду](operations/bootstrap-deploy.md).
+2. Проверьте [типовые инциденты и диагностику](operations/troubleshooting.md).
+3. Перед релизом пройдите [релизный чеклист](release/release-checklist.md).
+
+## Разделы документации
+
+- `architecture/`
+  - [Общая архитектура CoTune](architecture/architecture.md)
+  - [Архитектура bootstrap-peer](architecture/bootstrap-peer.md)
+- `api/`
+  - [Protobuf/gRPC IPC](api/protobuf-ipc.md)
+- `guides/`
+  - [Сборка и запуск Android](guides/android-build.md)
+  - [Сборка и запуск Windows](guides/windows-build.md)
+- `testing/`
+  - [Docker тест-сеть](testing/docker-test-network.md)
+- `operations/`
+  - [Развертывание bootstrap-peer](operations/bootstrap-deploy.md)
+  - [Диагностика и типовые проблемы](operations/troubleshooting.md)
+- `release/`
+  - [Релизный чеклист](release/release-checklist.md)

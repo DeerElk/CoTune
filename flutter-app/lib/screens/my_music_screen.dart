@@ -76,7 +76,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                           chips: [
                             ChoiceChip(
                               label: Text(
-                                'Треки',
+                                l10n.myMusicFilterTracks,
                                 style: GoogleFonts.inter(
                                   color: _filter == 0
                                       ? Colors.black
@@ -94,7 +94,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                             ),
                             ChoiceChip(
                               label: Text(
-                                'Исполнители',
+                                l10n.myMusicFilterArtists,
                                 style: GoogleFonts.inter(
                                   color: _filter == 1
                                       ? Colors.black
@@ -112,7 +112,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                             ),
                             ChoiceChip(
                               label: Text(
-                                'Плейлисты',
+                                l10n.myMusicFilterPlaylists,
                                 style: GoogleFonts.inter(
                                   color: _filter == 2
                                       ? Colors.black
@@ -130,7 +130,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                             ),
                             ChoiceChip(
                               label: Text(
-                                'Не подписаны',
+                                l10n.myMusicFilterUnsigned,
                                 style: GoogleFonts.inter(
                                   color: _filter == 3
                                       ? Colors.black
@@ -157,7 +157,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                       MediaQuery.of(context).size.height * 0.5,
                                   child: Center(
                                     child: Text(
-                                      'Понравившихся треков пока нет',
+                                      l10n.myMusicNoLikedTracks,
                                       style: GoogleFonts.inter(
                                         color:
                                             theme.textTheme.bodyMedium?.color,
@@ -177,7 +177,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                       MediaQuery.of(context).size.height * 0.5,
                                   child: Center(
                                     child: Text(
-                                      'Нет исполнителей',
+                                      l10n.myMusicNoArtists,
                                       style: GoogleFonts.inter(
                                         color:
                                             theme.textTheme.bodyMedium?.color,
@@ -192,7 +192,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                         .length;
                                     return FolderTile(
                                       name: a,
-                                      subtitle: '$cnt трек(ов)',
+                                      subtitle: l10n.myMusicTracksCount(cnt),
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -212,7 +212,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                       MediaQuery.of(context).size.height * 0.5,
                                   child: Center(
                                     child: Text(
-                                      'Плейлистов пока нет',
+                                      l10n.myMusicNoPlaylists,
                                       style: GoogleFonts.inter(
                                         color:
                                             theme.textTheme.bodyMedium?.color,
@@ -225,8 +225,9 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                       .map(
                                         (p) => FolderTile(
                                           name: p.name,
-                                          subtitle:
-                                              '${p.trackIds.length} трек(ов)',
+                                          subtitle: l10n.myMusicTracksCount(
+                                            p.trackIds.length,
+                                          ),
                                           onTap: () => Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -247,7 +248,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                       MediaQuery.of(context).size.height * 0.5,
                                   child: Center(
                                     child: Text(
-                                      'Нет неподписанных треков',
+                                      l10n.myMusicNoUnsignedTracks,
                                       style: GoogleFonts.inter(
                                         color:
                                             theme.textTheme.bodyMedium?.color,
@@ -275,7 +276,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                             final ctl = TextEditingController();
                             final res = await showCotuneModal<String?>(
                               context,
-                              title: 'Добавить плейлист',
+                              title: l10n.myMusicAddPlaylistTitle,
                               builder: (bctx) => [
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -286,8 +287,9 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                     children: [
                                       TextField(
                                         controller: ctl,
-                                        decoration: const InputDecoration(
-                                          hintText: 'Название плейлиста',
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              l10n.myMusicPlaylistNameHint,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -297,7 +299,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                                           bctx,
                                           ctl.text.trim(),
                                         ),
-                                        confirmLabel: 'Создать',
+                                        confirmLabel: l10n.myMusicCreate,
                                       ),
                                     ],
                                   ),
@@ -337,7 +339,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                             backgroundColor: CotuneTheme.highlight,
                           ),
                           child: Text(
-                            'Добавить плейлист',
+                            l10n.myMusicAddPlaylist,
                             style: GoogleFonts.inter(
                               color: CotuneTheme.headerTextColor,
                               fontWeight: FontWeight.w600,

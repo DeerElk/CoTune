@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../l10n/app_localizations.dart';
 
 class QRService {
   QRService._(); // static-only
@@ -43,7 +44,7 @@ class QRService {
 
     final byteData = await painter.toImageData(size.toDouble());
     if (byteData == null) {
-      throw Exception('Не удалось срендерить QR');
+      throw Exception('qr_render_failed');
     }
     return byteData.buffer.asUint8List();
   }
@@ -66,40 +67,29 @@ class QRService {
   /// Поделиться QR-изображением + текстом.
   /// Fallback: если не удалось — пробует текст, затем копирует в буфер.
   static Future<void> shareQr(
-      BuildContext ctx,
-      String data, {
-        int size = 1000,
-      }) async {
+    BuildContext ctx,
+    String data, {
+    int size = 1000,
+  }) async {
     try {
       final file = await saveQrToTempFile(data, size: size);
       final xfile = XFile(file.path, mimeType: 'image/png');
 
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [xfile],
-          text: data,
-        ),
-      );
+      await SharePlus.instance.share(ShareParams(files: [xfile], text: data));
       return;
     } catch (_) {
       try {
-        await SharePlus.instance.share(
-          ShareParams(
-            text: data,
-          ),
-        );
+        await SharePlus.instance.share(ShareParams(text: data));
         return;
       } catch (_) {
         await Clipboard.setData(ClipboardData(text: data));
-        if (ctx.mounted) {
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Не удалось поделиться — peer info скопирован в буфер',
-              ),
-            ),
-          );
-        }
+        if (!ctx.mounted) return;
+        final l10n = AppLocalizations.of(ctx);
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text(l10n?.qrShareFallbackCopied ?? l10n?.copied ?? ''),
+          ),
+        );
       }
     }
   }
@@ -111,10 +101,10 @@ class QRService {
     String? successMessage,
   }) async {
     await Clipboard.setData(ClipboardData(text: data));
-    if (ctx.mounted) {
-      ScaffoldMessenger.of(
-        ctx,
-      ).showSnackBar(SnackBar(content: Text(successMessage ?? 'Скопировано')));
-    }
+    if (!ctx.mounted) return;
+    final l10n = AppLocalizations.of(ctx);
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(content: Text(successMessage ?? l10n?.copied ?? '')),
+    );
   }
 }

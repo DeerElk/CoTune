@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:cotune_mobile/screens/folder_screen.dart';
 import 'package:cotune_mobile/widgets/modal.dart';
 import 'package:cotune_mobile/widgets/option_sheet.dart';
@@ -15,6 +14,7 @@ import '../services/p2p_grpc_service.dart';
 import '../theme.dart';
 import '../screens/player_fullscreen.dart';
 import '../services/audio_player_service.dart';
+import '../l10n/app_localizations.dart';
 
 class TrackTile extends StatelessWidget {
   final Track track;
@@ -26,25 +26,23 @@ class TrackTile extends StatelessWidget {
     final storage = Provider.of<StorageService>(context, listen: false);
     final audio = Provider.of<AudioPlayerService>(context, listen: false);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final unsigned = !track.recognized;
     final published = track.recognized && track.sharedToNetwork;
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
         final queue = storage.allTracks();
         final likedQueue = queue.where((t) => t.liked).toList();
         audio.setQueueFromTracks(
           likedQueue.isNotEmpty ? likedQueue : queue,
           currentId: track.id,
         );
-        audio.playUri(track.path, trackId: track.id);
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => const PlayerFullScreenSheet(),
-        );
+        final started = await audio.playUri(track.path, trackId: track.id);
+        if (started && context.mounted) {
+          PlayerFullScreenSheet.open(context);
+        }
       },
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 0, 12),
@@ -52,7 +50,9 @@ class TrackTile extends StatelessWidget {
           children: [
             Icon(
               unsigned ? Icons.error_outline : Icons.music_note,
-              color: unsigned ? Colors.orangeAccent : CotuneTheme.highlight,
+              color: unsigned
+                  ? CotuneTheme.statusWarning
+                  : CotuneTheme.highlight,
               size: 28,
             ),
             const SizedBox(width: 12),
@@ -61,7 +61,7 @@ class TrackTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    track.title.isNotEmpty ? track.title : 'Без названия',
+                    track.title.isNotEmpty ? track.title : l10n.untitledTrack,
                     style: GoogleFonts.manrope(
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.onSurface,
@@ -88,12 +88,14 @@ class TrackTile extends StatelessWidget {
                             : Icons.cloud_off_outlined,
                         size: 14,
                         color: published
-                            ? Colors.lightGreenAccent
-                            : Colors.orangeAccent,
+                            ? CotuneTheme.statusSuccess
+                            : CotuneTheme.statusWarning,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        published ? 'Опубликован в сети' : 'Не опубликован',
+                        published
+                            ? l10n.trackPublishedToNetwork
+                            : l10n.trackNotPublishedToNetwork,
                         style: GoogleFonts.inter(
                           color: theme.textTheme.bodySmall?.color,
                           fontSize: 11,
@@ -174,9 +176,7 @@ class TrackTile extends StatelessWidget {
                       await storage.updateTrack(track);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Трек опубликован в P2P сети'),
-                          ),
+                          SnackBar(content: Text(l10n.trackPublishedSuccess)),
                         );
                       }
                     } catch (e) {
@@ -184,9 +184,7 @@ class TrackTile extends StatelessWidget {
                       await storage.updateTrack(track);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Ошибка публикации трека: $e'),
-                          ),
+                          SnackBar(content: Text(l10n.trackPublishError(e))),
                         );
                       }
                     }
@@ -211,12 +209,13 @@ class TrackTile extends StatelessWidget {
 
   void _showMenu(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     OptionSheet.show(context, [
       ListTile(
         leading: Icon(Icons.playlist_add, color: theme.colorScheme.primary),
         title: Text(
-          'Добавить в плейлист',
+          l10n.trackMenuAddToPlaylist,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -227,7 +226,7 @@ class TrackTile extends StatelessWidget {
       ListTile(
         leading: Icon(Icons.save_alt, color: theme.colorScheme.primary),
         title: Text(
-          'Сохранить в файлы',
+          l10n.trackMenuSaveToFiles,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -238,7 +237,7 @@ class TrackTile extends StatelessWidget {
       ListTile(
         leading: Icon(Icons.person, color: theme.colorScheme.primary),
         title: Text(
-          'Перейти к артисту',
+          l10n.trackMenuGoToArtist,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -256,7 +255,7 @@ class TrackTile extends StatelessWidget {
         ListTile(
           leading: Icon(Icons.edit, color: theme.colorScheme.primary),
           title: Text(
-            'Подписать вручную',
+            l10n.trackMenuManualTag,
             style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
           ),
           onTap: () {
@@ -272,12 +271,13 @@ class TrackTile extends StatelessWidget {
     bool singleSelect = false,
   }) async {
     final storage = Provider.of<StorageService>(ctx, listen: false);
+    final l10n = AppLocalizations.of(ctx)!;
     List<PlaylistModel> playlists = storage.allPlaylists();
 
     final result = await showCotuneModal<List<String>?>(
       // -> List<Widget> Function(BuildContext)
       ctx,
-      title: 'Добавить в плейлист',
+      title: l10n.trackAddToPlaylistTitle,
       builder: (bctx) {
         // <-- selected объявлен здесь, вне StatefulBuilder
         final selected = <String>{};
@@ -334,7 +334,7 @@ class TrackTile extends StatelessWidget {
                   CotuneModalActions(
                     onCancel: () => Navigator.of(bctx).pop(<String>[]),
                     onConfirm: () => Navigator.of(bctx).pop(selected.toList()),
-                    confirmLabel: 'Добавить',
+                    confirmLabel: l10n.trackAddToPlaylistConfirm,
                   ),
                 ],
               );
@@ -353,20 +353,21 @@ class TrackTile extends StatelessWidget {
           await storage.savePlaylist(pl);
         }
       }
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('Трек(и) добавлены в плейлисты')),
-      );
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(SnackBar(content: Text(l10n.trackAddedToPlaylists)));
     }
   }
 
   Future<void> _manualTag(BuildContext ctx) async {
     final storage = Provider.of<StorageService>(ctx, listen: false);
+    final l10n = AppLocalizations.of(ctx)!;
     final titleCtl = TextEditingController(text: track.title);
     final artistCtl = TextEditingController(text: track.artist);
 
     final res = await showCotuneModal<bool?>(
       ctx,
-      title: 'Подписать вручную',
+      title: l10n.trackManualTagTitle,
       builder: (bctx) => [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -375,18 +376,22 @@ class TrackTile extends StatelessWidget {
             children: [
               TextField(
                 controller: titleCtl,
-                decoration: const InputDecoration(labelText: 'Название'),
+                decoration: InputDecoration(
+                  labelText: l10n.trackManualTagNameLabel,
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: artistCtl,
-                decoration: const InputDecoration(labelText: 'Исполнитель'),
+                decoration: InputDecoration(
+                  labelText: l10n.trackManualTagArtistLabel,
+                ),
               ),
               const SizedBox(height: 12),
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
                 onConfirm: () => Navigator.pop(bctx, true),
-                confirmLabel: 'Сохранить',
+                confirmLabel: l10n.save,
               ),
             ],
           ),
@@ -411,9 +416,7 @@ class TrackTile extends StatelessWidget {
         await storage.updateTrack(track);
         if (ctx.mounted) {
           ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(
-              content: Text('Данные трека обновлены и опубликованы'),
-            ),
+            SnackBar(content: Text(l10n.trackManualTagSavedAndPublished)),
           );
         }
       } catch (e) {
@@ -421,9 +424,7 @@ class TrackTile extends StatelessWidget {
         await storage.updateTrack(track);
         if (ctx.mounted) {
           ScaffoldMessenger.of(ctx).showSnackBar(
-            SnackBar(
-              content: Text('Данные обновлены, но публикация не удалась: $e'),
-            ),
+            SnackBar(content: Text(l10n.trackManualTagSavePublishFailed(e))),
           );
         }
       }
@@ -431,12 +432,13 @@ class TrackTile extends StatelessWidget {
   }
 
   Future<void> _saveToFiles(BuildContext ctx, String sourcePath) async {
+    final l10n = AppLocalizations.of(ctx)!;
     try {
       final src = File(sourcePath);
       if (!await src.exists()) {
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          const SnackBar(content: Text('Исходный файл не найден')),
-        );
+        ScaffoldMessenger.of(
+          ctx,
+        ).showSnackBar(SnackBar(content: Text(l10n.trackSourceFileNotFound)));
         return;
       }
 
@@ -460,12 +462,12 @@ class TrackTile extends StatelessWidget {
       await dest.writeAsBytes(bytes);
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Сохранено локально: ${dest.path}')),
+        SnackBar(content: Text(l10n.trackSavedLocally(dest.path))),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         ctx,
-      ).showSnackBar(SnackBar(content: Text('Ошибка при сохранении: $e')));
+      ).showSnackBar(SnackBar(content: Text(l10n.trackSaveError(e))));
     }
   }
 }

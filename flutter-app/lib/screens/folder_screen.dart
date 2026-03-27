@@ -2,6 +2,7 @@ import 'package:cotune_mobile/widgets/modal.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 
 import '../models/playlist.dart';
 import '../services/storage_service.dart';
@@ -27,6 +28,7 @@ class _FolderScreenState extends State<FolderScreen> {
   Widget build(BuildContext context) {
     final storage = context.watch<StorageService>();
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final bool isPlaylist = widget.type == FolderType.playlist;
 
@@ -36,7 +38,7 @@ class _FolderScreenState extends State<FolderScreen> {
 
     if (isPlaylist) {
       playlist = storage.getPlaylist(widget.idOrName);
-      title = playlist?.name ?? 'Плейлист';
+      title = playlist?.name ?? l10n.folderDefaultPlaylistTitle;
       tracks = playlist == null
           ? []
           : playlist.trackIds
@@ -85,12 +87,13 @@ class _FolderScreenState extends State<FolderScreen> {
 
   void _openPlaylistOptions(BuildContext context, PlaylistModel pl) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     OptionSheet.show(context, [
       ListTile(
         leading: Icon(Icons.playlist_add, color: theme.colorScheme.primary),
         title: Text(
-          'Добавить в плейлист',
+          l10n.trackMenuAddToPlaylist,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -101,7 +104,7 @@ class _FolderScreenState extends State<FolderScreen> {
       ListTile(
         leading: Icon(Icons.edit, color: theme.colorScheme.primary),
         title: Text(
-          'Переименовать плейлист',
+          l10n.folderRenamePlaylistTitle,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -112,7 +115,7 @@ class _FolderScreenState extends State<FolderScreen> {
       ListTile(
         leading: Icon(Icons.delete, color: theme.colorScheme.error),
         title: Text(
-          'Удалить плейлист',
+          l10n.folderDeletePlaylistConfirm,
           style: GoogleFonts.inter(color: theme.colorScheme.onSurface),
         ),
         onTap: () {
@@ -124,11 +127,12 @@ class _FolderScreenState extends State<FolderScreen> {
   }
 
   Future<void> _renamePlaylist(BuildContext ctx, PlaylistModel pl) async {
+    final l10n = AppLocalizations.of(ctx)!;
     final ctl = TextEditingController(text: pl.name);
 
     final res = await showCotuneModal<bool?>(
       ctx,
-      title: 'Переименовать плейлист',
+      title: l10n.folderRenamePlaylistTitle,
       builder: (bctx) => [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -137,13 +141,13 @@ class _FolderScreenState extends State<FolderScreen> {
             children: [
               TextField(
                 controller: ctl,
-                decoration: const InputDecoration(labelText: 'Название'),
+                decoration: InputDecoration(labelText: l10n.title),
               ),
               const SizedBox(height: 12),
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
                 onConfirm: () => Navigator.pop(bctx, true),
-                confirmLabel: 'Сохранить',
+                confirmLabel: l10n.save,
               ),
             ],
           ),
@@ -159,9 +163,10 @@ class _FolderScreenState extends State<FolderScreen> {
   }
 
   Future<void> _deletePlaylist(BuildContext ctx, PlaylistModel pl) async {
+    final l10n = AppLocalizations.of(ctx)!;
     final ok = await showCotuneModal<bool?>(
       ctx,
-      title: 'Удалить плейлист?',
+      title: l10n.folderDeletePlaylistTitle,
       builder: (bctx) => [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -169,7 +174,7 @@ class _FolderScreenState extends State<FolderScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Плейлист "${pl.name}" будет удалён.',
+                l10n.folderDeletePlaylistMessage(pl.name),
                 style: TextStyle(
                   color: Theme.of(
                     bctx,
@@ -180,7 +185,7 @@ class _FolderScreenState extends State<FolderScreen> {
               CotuneModalActions(
                 onCancel: () => Navigator.pop(bctx, false),
                 onConfirm: () => Navigator.pop(bctx, true),
-                confirmLabel: 'Удалить',
+                confirmLabel: l10n.folderDeletePlaylistConfirm,
                 destructiveConfirm: true,
               ),
             ],
@@ -200,18 +205,19 @@ class _FolderScreenState extends State<FolderScreen> {
 
   Future<void> _addFromLiked(BuildContext ctx, PlaylistModel pl) async {
     final storage = Provider.of<StorageService>(ctx, listen: false);
+    final l10n = AppLocalizations.of(ctx)!;
     final liked = storage.allTracks().where((t) => t.liked).toList();
     if (liked.isEmpty) {
       ScaffoldMessenger.of(
         ctx,
-      ).showSnackBar(const SnackBar(content: Text('Нет понравившихся треков')));
+      ).showSnackBar(SnackBar(content: Text(l10n.folderNoLikedTracks)));
       return;
     }
 
     final chosen = await showCotuneModal<List<String>?>(
       // builder: (bctx) => [...]
       ctx,
-      title: 'Добавить в плейлист',
+      title: l10n.trackAddToPlaylistTitle,
       builder: (bctx) {
         final selected = <String>{};
         return [
@@ -255,7 +261,7 @@ class _FolderScreenState extends State<FolderScreen> {
                   CotuneModalActions(
                     onCancel: () => Navigator.pop(bctx, <String>[]),
                     onConfirm: () => Navigator.pop(bctx, selected.toList()),
-                    confirmLabel: 'Добавить',
+                    confirmLabel: l10n.trackAddToPlaylistConfirm,
                   ),
                 ],
               );
@@ -271,7 +277,7 @@ class _FolderScreenState extends State<FolderScreen> {
       setState(() {});
       ScaffoldMessenger.of(
         ctx,
-      ).showSnackBar(const SnackBar(content: Text('Треки добавлены')));
+      ).showSnackBar(SnackBar(content: Text(l10n.folderTracksAdded)));
     }
   }
 }

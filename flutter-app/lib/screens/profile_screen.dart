@@ -117,11 +117,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _scanQr() async {
     if (!_qrScanSupported) {
+      final l10n = AppLocalizations.of(context)!;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('QR-сканер доступен только на мобильных платформах'),
-          ),
+          SnackBar(content: Text(l10n.profileQrScannerMobileOnly)),
         );
       }
       return;
@@ -605,6 +604,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final providers = asInt(providersRaw);
     final routing = asInt(routingRaw);
     final wanActive = asBool(wanRaw);
+    final l10n = AppLocalizations.of(context)!;
 
     // Fallback so UI doesn't show false zeros when /status temporarily fails.
     if (connectedPeers == 0 && _hosts.isNotEmpty) {
@@ -625,7 +625,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Icon(
             ok ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
-            color: ok ? Colors.lightGreenAccent : Colors.orangeAccent,
+            color: ok ? CotuneTheme.statusSuccess : CotuneTheme.statusWarning,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -633,14 +633,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Сеть: peers=$connectedPeers, providers=${hasDiag ? providers : "n/a"}, rt=${hasDiag ? routing : "n/a"}, wan=${hasDiag ? (wanActive ? "on" : "off") : "n/a"}',
+                  l10n.profileNetworkStatus(
+                    connectedPeers,
+                    hasDiag ? providers : l10n.valueNotAvailable,
+                    hasDiag ? routing : l10n.valueNotAvailable,
+                    hasDiag
+                        ? (wanActive ? l10n.valueOn : l10n.valueOff)
+                        : l10n.valueNotAvailable,
+                  ),
                   style: GoogleFonts.inter(
                     color: theme.textTheme.bodyMedium?.color,
                   ),
                 ),
                 if (diagError != null && diagError.isNotEmpty)
                   Text(
-                    'diag: $diagError',
+                    l10n.profileDiagMessage(diagError),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(

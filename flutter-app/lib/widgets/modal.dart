@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme.dart';
 
 Future<T?> showCotuneModal<T>(
-    BuildContext context, {
-      required List<Widget> Function(BuildContext) builder,
-      String? title,
-      bool isDismissible = true,
-      bool enableDrag = true,
-      double topCornerRadius = 16.0,
-      double? maxHeightFraction,
-    }) {
+  BuildContext context, {
+  required List<Widget> Function(BuildContext) builder,
+  String? title,
+  bool isDismissible = true,
+  bool enableDrag = true,
+  double topCornerRadius = 16.0,
+  double? maxHeightFraction,
+}) {
   final modalTheme = Theme.of(context).extension<CotuneModalTheme>()!;
 
   return showModalBottomSheet<T>(
@@ -57,10 +58,7 @@ Future<T?> showCotuneModal<T>(
             if (title != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleLarge,
-                ),
+                child: Text(title, style: theme.textTheme.titleLarge),
               ),
 
             const SizedBox(height: 24),
@@ -76,12 +74,7 @@ Future<T?> showCotuneModal<T>(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(topCornerRadius),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: modalTheme.shadow,
-              blurRadius: 24,
-            ),
-          ],
+          boxShadow: [BoxShadow(color: modalTheme.shadow, blurRadius: 24)],
         ),
         child: SafeArea(
           top: false,
@@ -110,16 +103,16 @@ Future<T?> showCotuneModal<T>(
 class CotuneModalActions extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onConfirm;
-  final String cancelLabel;
-  final String confirmLabel;
+  final String? cancelLabel;
+  final String? confirmLabel;
   final bool destructiveConfirm;
 
   const CotuneModalActions({
     super.key,
     this.onCancel,
     this.onConfirm,
-    this.cancelLabel = 'Отмена',
-    this.confirmLabel = 'Сохранить',
+    this.cancelLabel,
+    this.confirmLabel,
     this.destructiveConfirm = false,
   });
 
@@ -127,6 +120,9 @@ class CotuneModalActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final modalTheme = Theme.of(context).extension<CotuneModalTheme>()!;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final cancelText = cancelLabel ?? l10n?.cancel ?? 'Cancel';
+    final confirmText = confirmLabel ?? l10n?.save ?? 'Save';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -139,7 +135,7 @@ class CotuneModalActions extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onSurface,
               ),
               onPressed: onCancel ?? () => Navigator.of(context).pop(),
-              child: Text(cancelLabel),
+              child: Text(cancelText),
             ),
           ),
           const SizedBox(width: 12),
@@ -152,7 +148,7 @@ class CotuneModalActions extends StatelessWidget {
                 foregroundColor: modalTheme.confirmText,
               ),
               onPressed: onConfirm,
-              child: Text(confirmLabel),
+              child: Text(confirmText),
             ),
           ),
         ],

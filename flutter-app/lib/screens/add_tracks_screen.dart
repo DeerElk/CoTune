@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cotune_mobile/services/p2p_grpc_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -57,6 +56,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
 
     final storage = Provider.of<StorageService>(context, listen: false);
     final p2p = Provider.of<P2PGrpcService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     final errors = <String>[];
 
@@ -70,7 +70,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
         ); // IO — async, not on UI thread
         final meta = null;
         final titleFallback = p.basenameWithoutExtension(f.name);
-        final artistFallback = 'Unknown Artist';
+        final artistFallback = l10n.unknownArtist;
         final recognized =
             meta != null &&
             (meta['title'] != null) &&
@@ -125,9 +125,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Некоторые файлы не импортированы (${errors.length})',
-            ),
+            content: Text(l10n.addTracksSomeFilesNotImported(errors.length)),
           ),
         );
       }
@@ -152,7 +150,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                 child: picked.isEmpty
                     ? Center(
                         child: Text(
-                          'Файлы не выбраны',
+                          l10n.addTracksNoFilesSelected,
                           style: GoogleFonts.inter(
                             color: theme.textTheme.bodyMedium?.color,
                           ),
@@ -185,7 +183,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.attach_file),
                         label: Text(
-                          'Выбрать',
+                          l10n.addTracksPick,
                           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                           textAlign: TextAlign.center,
                         ),
@@ -205,7 +203,9 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                           minimumSize: const Size(double.infinity, 50),
                         ),
                         child: Text(
-                          loading ? 'Импорт...' : 'Импорт',
+                          loading
+                              ? l10n.addTracksImporting
+                              : l10n.addTracksImport,
                           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                           textAlign: TextAlign.center,
                         ),

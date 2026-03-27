@@ -1,156 +1,32 @@
-# CoTune — Децентрализованная P2P музыкальная сеть
+# CoTune
 
-CoTune — это Android-приложение, аналог Spotify по UX, но полностью децентрализованное:
+CoTune - децентрализованная P2P музыкальная сеть с клиентами на Android и Windows.
+Проект работает без централизованного хранилища и аккаунтов: устройства обмениваются треками напрямую через libp2p/DHT.
 
-- ✅ **Нет серверов** — каждый Android-девайс является полноценным P2P узлом
-- ✅ **Нет торрент-трекеров** — используется Kademlia DHT
-- ✅ **Нет регистрации** — анонимная сеть без аккаунтов
-- ✅ **Нет экономики** — никаких токенов, рейтингов или монетизации
+## Ключевые принципы
 
-Музыка хранится и стримится напрямую с Android-устройств пользователей, реплицируется органически (по лайкам).
+- Нет центрального сервера контента.
+- Идентификатор трека - `CTID` (SHA256 нормализованного PCM), одинаковый для одного и того же аудио.
+- В DHT хранятся только provider-записи, без медиа и глобального текстового индекса.
+- Репликация происходит только по действию пользователя (лайк).
 
-## 📁 Структура проекта
+## Структура репозитория
 
-```
-CoTune/
-├── go-backend/              # Go daemon (libp2p P2P узел)
-│   ├── cmd/daemon/         # Точка входа daemon
-│   ├── internal/           # Основные компоненты
-│   │   ├── host/          # libp2p host (TCP, QUIC, Noise, etc.)
-│   │   ├── dht/           # Kademlia DHT для provider records
-│   │   ├── ctr/           # Canonical Track Resolution
-│   │   ├── search/        # Поиск по токенам
-│   │   ├── streaming/     # Chunk-based streaming
-│   │   ├── storage/       # Локальное хранилище
-│   │   └── api/proto/     # Protobuf/gRPC IPC сервер
-│   └── api/               # Protobuf схема
-├── flutter-app/           # Flutter UI приложение
-│   ├── lib/               # Dart код
-│   │   ├── screens/       # UI экраны (search, my_music, profile)
-│   │   ├── services/      # Сервисы (P2P, storage, audio)
-│   │   └── generated/     # Сгенерированный protobuf код
-│   └── android/           # Android-специфичный код
-│       └── app/src/main/kotlin/  # Kotlin bridge
-└── docs/                  # Документация
-```
+- `go-backend/` - Go daemon (P2P, DHT, CTR, search, streaming, IPC).
+- `flutter-app/` - Flutter-клиент (Android и Windows).
+- `bootstrap/` - bootstrap-peer для initial discovery.
+- `docs/` - каноническая документация проекта.
 
-## 🚀 Быстрый старт
+## Документация
 
-### Требования
+- Основной индекс: [docs/README.md](docs/README.md)
+- Архитектура: [docs/architecture/architecture.md](docs/architecture/architecture.md)
+- IPC API: [docs/api/protobuf-ipc.md](docs/api/protobuf-ipc.md)
+- Сборка Android: [docs/guides/android-build.md](docs/guides/android-build.md)
+- Сборка Windows: [docs/guides/windows-build.md](docs/guides/windows-build.md)
+- Docker тест-сеть: [docs/testing/docker-test-network.md](docs/testing/docker-test-network.md)
 
-- **Go 1.24+** (рекомендуется 1.25.5)
-- **Flutter SDK 3.10+**
-- **protoc** (Protocol Buffers compiler)
-- **Android SDK** и NDK
+## Лицензия
 
-### Сборка Go daemon
-
-```bash
-cd go-backend
-go mod download
-
-# Генерация protobuf кода
-./generate_proto.sh  # Linux/macOS
-# или
-generate_proto.bat   # Windows
-
-# Сборка для Android
-./build_android.sh   # Linux/macOS
-# или
-build_android.bat    # Windows
-```
-
-Бинарники будут автоматически скопированы в `flutter-app/android/app/src/main/jniLibs/`.
-
-### Запуск Flutter приложения
-
-```bash
-cd flutter-app
-
-# Генерация Dart protobuf кода
-./generate_proto_dart.sh  # Linux/macOS
-# или
-generate_proto_dart.bat   # Windows
-
-# Запуск на устройстве
-flutter run
-```
-
-## 📚 Документация
-
-Актуальная документация находится в папке [`docs/`](docs/):
-
-- **[Архитектура](docs/ARCHITECTURE.md)** — актуальная структура backend и mobile
-- **[Сборка для Android](docs/ANDROID_BUILD.md)** — сборка daemon и интеграция в APK
-- **[Protobuf IPC](docs/PROTOBUF_IPC.md)** — gRPC/Protobuf IPC между Flutter/Kotlin и Go
-- **[Индекс](docs/INDEX.md)** — навигация по документации
-- **[Docker test network](go-backend/README_docker.md)** — локальная P2P сеть для нагрузочных тестов
-
-## 🔑 Ключевые особенности
-
-### Canonical Track Resolution (CTR)
-
-Каждый трек имеет **Canonical Track ID (CTID)** = SHA256(нормализованного PCM):
-
-- ✅ Не зависит от битрейта, кодека, контейнера
-- ✅ Одинаковый трек → одинаковый CTID
-- ✅ Вычисляется автоматически в фоне
-
-### Distributed Index (DHT)
-
-В DHT хранятся **ТОЛЬКО** provider records:
-
-- Key: `/ctid/<CTID>`
-- Value: PeerID
-- TTL: 24 часа
-
-❌ **Запрещено**: аудиофайлы, метаданные, текстовые индексы
-
-### Поиск без Flood
-
-1. Токенизация запроса
-2. Для каждого токена: `FindProviders(/token/<hash>)`
-3. Запрос локальных индексов у пиров через протокол `/cotune/index/1.0.0`
-4. `FindProviders(/ctid/<CTID>)` → получение адресов пиров
-
-### Репликация
-
-Репликация происходит **ТОЛЬКО** по действию пользователя:
-
-1. Пользователь нажал "лайк"
-2. Трек полностью скачивается (если удаленный)
-3. Сохраняется локально
-4. Устройство начинает раздавать: `Provide(/ctid/<CTID>)`
-
-Никакой принудительной репликации нет.
-
-## 🛠️ Технологии
-
-- **libp2p v0.45.0** — P2P сеть
-  - TCP, QUIC транспорты
-  - Noise security
-  - AutoNAT, Hole Punching
-  - Relay v2 (fallback)
-  - Kademlia DHT (WAN)
-
-- **Protobuf/gRPC** — IPC между Flutter/Kotlin и Go daemon
-- **BadgerDB** — Локальное хранилище
-- **Flutter** — UI приложение
-
-## 📊 Статус проекта
-
-Все критические компоненты реализованы в коде и доступны для тестирования:
-- ✅ Полностью децентрализованная P2P архитектура
-- ✅ CTR с нормализацией PCM
-- ✅ DHT с только provider records
-- ✅ Поиск без flooding
-- ✅ Chunk-based streaming
-- ✅ Репликация по лайкам
-- ✅ Protobuf IPC сервер
-- ✅ Android интеграция (daemon процесс)
-
-**Статус**: активно тестируется
-
-## 📝 Лицензия
-
-См. [LICENSE](LICENSE)
+Проект распространяется по лицензии `Apache-2.0`.
+См. [LICENSE](LICENSE).

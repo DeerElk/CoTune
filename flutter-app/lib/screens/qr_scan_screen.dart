@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/rounded_app_bar.dart';
 
 class QRScanScreen extends StatefulWidget {
@@ -14,9 +15,10 @@ class _QRScanScreenState extends State<QRScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: const RoundedAppBar(title: Text('Сканировать')),
+      appBar: RoundedAppBar(title: Text(l10n.scan)),
       body: MobileScanner(
         onDetect: (capture) {
           if (_handled) return;

@@ -38,5 +38,117 @@
   "peerInfoJson": "Peer info (JSON)",
   "copyAddress": "Copy address",
   "copyAddressTooltip": "Copy address",
-  "myMusic": "My Music"
+  "searchFilterAll": "All",
+  "searchFilterTracks": "Tracks",
+  "searchFilterArtists": "Artists",
+  "searchSectionNetwork": "In network",
+  "searchSectionLocal": "Local",
+  "searchRemoteAddedAndShared": "Track added to My Music, downloaded, and shared to network",
+  "searchRemoteFetchFailed": "Failed to fetch track from network: {error}",
+  "@searchRemoteFetchFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "untitledTrack": "Untitled",
+  "unknownArtist": "Unknown",
+  "myMusicFilterTracks": "Tracks",
+  "myMusicFilterArtists": "Artists",
+  "myMusicFilterPlaylists": "Playlists",
+  "myMusicFilterUnsigned": "Unsigned",
+  "myMusicNoLikedTracks": "No liked tracks yet",
+  "myMusicNoArtists": "No artists",
+  "myMusicNoPlaylists": "No playlists yet",
+  "myMusicNoUnsignedTracks": "No unsigned tracks",
+  "myMusicAddPlaylist": "Add playlist",
+  "myMusicAddPlaylistTitle": "Add playlist",
+  "myMusicPlaylistNameHint": "Playlist name",
+  "myMusicCreate": "Create",
+  "myMusicTracksCount": "{count} track(s)",
+  "@myMusicTracksCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "profileQrScannerMobileOnly": "QR scanner is available only on mobile platforms",
+  "profileNetworkStatus": "Network: peers={peers}, providers={providers}, rt={routing}, wan={wan}",
+  "@profileNetworkStatus": {
+    "placeholders": {
+      "peers": {},
+      "providers": {},
+      "routing": {},
+      "wan": {}
+    }
+  },
+  "profileDiagMessage": "diag: {error}",
+  "@profileDiagMessage": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "valueNotAvailable": "n/a",
+  "valueOn": "on",
+  "valueOff": "off",
+  "trackPublishedToNetwork": "Published to network",
+  "trackNotPublishedToNetwork": "Not published",
+  "trackPublishedSuccess": "Track published to P2P network",
+  "trackPublishError": "Track publish error: {error}",
+  "@trackPublishError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "trackMenuAddToPlaylist": "Add to playlist",
+  "trackMenuSaveToFiles": "Save to files",
+  "trackMenuGoToArtist": "Go to artist",
+  "trackMenuManualTag": "Tag manually",
+  "trackAddToPlaylistTitle": "Add to playlist",
+  "trackAddToPlaylistConfirm": "Add",
+  "trackAddedToPlaylists": "Track(s) added to playlists",
+  "trackManualTagTitle": "Tag manually",
+  "trackManualTagNameLabel": "Title",
+  "trackManualTagArtistLabel": "Artist",
+  "trackManualTagSavedAndPublished": "Track metadata updated and published",
+  "trackManualTagSavePublishFailed": "Data updated, but publish failed: {error}",
+  "@trackManualTagSavePublishFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "trackSourceFileNotFound": "Source file not found",
+  "trackSavedLocally": "Saved locally: {path}",
+  "@trackSavedLocally": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "trackSaveError": "Save error: {error}",
+  "@trackSaveError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "folderDefaultPlaylistTitle": "Playlist",
+  "folderRenamePlaylistTitle": "Rename playlist",
+  "folderDeletePlaylistTitle": "Delete playlist?",
+  "folderDeletePlaylistMessage": "Playlist \"{name}\" will be deleted.",
+  "@folderDeletePlaylistMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "folderDeletePlaylistConfirm": "Delete",
+  "folderNoLikedTracks": "No liked tracks",
+  "folderTracksAdded": "Tracks added",
+  "addTracksNoFilesSelected": "No files selected",
+  "addTracksPick": "Pick",
+  "addTracksImport": "Import",
+  "addTracksImporting": "Importing...",
+  "addTracksSomeFilesNotImported": "Some files were not imported ({count})",
+  "@addTracksSomeFilesNotImported": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "qrShareFallbackCopied": "Share failed - peer info copied to clipboard"
 }

@@ -23,7 +23,7 @@
   "theme": "Тема",
   "language": "Язык",
   "russian": "Русский",
-  "english": "English",
+  "english": "Английский",
   "systemTheme": "Системная",
   "darkTheme": "Тёмная",
   "lightTheme": "Светлая",
@@ -35,8 +35,120 @@
   "save": "Сохранить",
   "cancel": "Отмена",
   "connect": "Подключить",
-  "peerInfoJson": "Peer info (JSON)",
-  "copyAddress": "Copy address",
+  "peerInfoJson": "Данные узла (JSON)",
+  "copyAddress": "Скопировать адрес",
   "copyAddressTooltip": "Скопировать адрес",
-  "myMusic": "Моя музыка"
+  "searchFilterAll": "Всё",
+  "searchFilterTracks": "Треки",
+  "searchFilterArtists": "Исполнители",
+  "searchSectionNetwork": "В сети",
+  "searchSectionLocal": "Локальные",
+  "searchRemoteAddedAndShared": "Трек добавлен в мою музыку, скачан и опубликован в сети",
+  "searchRemoteFetchFailed": "Не удалось получить трек из сети: {error}",
+  "@searchRemoteFetchFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "untitledTrack": "Без названия",
+  "unknownArtist": "Неизвестный",
+  "myMusicFilterTracks": "Треки",
+  "myMusicFilterArtists": "Исполнители",
+  "myMusicFilterPlaylists": "Плейлисты",
+  "myMusicFilterUnsigned": "Не подписаны",
+  "myMusicNoLikedTracks": "Понравившихся треков пока нет",
+  "myMusicNoArtists": "Нет исполнителей",
+  "myMusicNoPlaylists": "Плейлистов пока нет",
+  "myMusicNoUnsignedTracks": "Нет неподписанных треков",
+  "myMusicAddPlaylist": "Добавить плейлист",
+  "myMusicAddPlaylistTitle": "Добавить плейлист",
+  "myMusicPlaylistNameHint": "Название плейлиста",
+  "myMusicCreate": "Создать",
+  "myMusicTracksCount": "{count} трек(ов)",
+  "@myMusicTracksCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "profileQrScannerMobileOnly": "QR-сканер доступен только на мобильных платформах",
+  "profileNetworkStatus": "Сеть: peers={peers}, providers={providers}, rt={routing}, wan={wan}",
+  "@profileNetworkStatus": {
+    "placeholders": {
+      "peers": {},
+      "providers": {},
+      "routing": {},
+      "wan": {}
+    }
+  },
+  "profileDiagMessage": "диаг: {error}",
+  "@profileDiagMessage": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "valueNotAvailable": "н/д",
+  "valueOn": "вкл",
+  "valueOff": "выкл",
+  "trackPublishedToNetwork": "Опубликован в сети",
+  "trackNotPublishedToNetwork": "Не опубликован",
+  "trackPublishedSuccess": "Трек опубликован в P2P сети",
+  "trackPublishError": "Ошибка публикации трека: {error}",
+  "@trackPublishError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "trackMenuAddToPlaylist": "Добавить в плейлист",
+  "trackMenuSaveToFiles": "Сохранить в файлы",
+  "trackMenuGoToArtist": "Перейти к артисту",
+  "trackMenuManualTag": "Подписать вручную",
+  "trackAddToPlaylistTitle": "Добавить в плейлист",
+  "trackAddToPlaylistConfirm": "Добавить",
+  "trackAddedToPlaylists": "Трек(и) добавлены в плейлисты",
+  "trackManualTagTitle": "Подписать вручную",
+  "trackManualTagNameLabel": "Название",
+  "trackManualTagArtistLabel": "Исполнитель",
+  "trackManualTagSavedAndPublished": "Данные трека обновлены и опубликованы",
+  "trackManualTagSavePublishFailed": "Данные обновлены, но публикация не удалась: {error}",
+  "@trackManualTagSavePublishFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "trackSourceFileNotFound": "Исходный файл не найден",
+  "trackSavedLocally": "Сохранено локально: {path}",
+  "@trackSavedLocally": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "trackSaveError": "Ошибка при сохранении: {error}",
+  "@trackSaveError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "folderDefaultPlaylistTitle": "Плейлист",
+  "folderRenamePlaylistTitle": "Переименовать плейлист",
+  "folderDeletePlaylistTitle": "Удалить плейлист?",
+  "folderDeletePlaylistMessage": "Плейлист \"{name}\" будет удалён.",
+  "@folderDeletePlaylistMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "folderDeletePlaylistConfirm": "Удалить",
+  "folderNoLikedTracks": "Нет понравившихся треков",
+  "folderTracksAdded": "Треки добавлены",
+  "addTracksNoFilesSelected": "Файлы не выбраны",
+  "addTracksPick": "Выбрать",
+  "addTracksImport": "Импорт",
+  "addTracksImporting": "Импорт...",
+  "addTracksSomeFilesNotImported": "Некоторые файлы не импортированы ({count})",
+  "@addTracksSomeFilesNotImported": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "qrShareFallbackCopied": "Не удалось поделиться - peer info скопирован в буфер"
 }

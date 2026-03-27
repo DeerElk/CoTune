@@ -6,17 +6,14 @@ class BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const BottomNav({
-    super.key,
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const BottomNav({super.key, required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final bg = theme.colorScheme.surface;
+    final bg = CotuneTheme.panelBackground(theme);
+    final borderColor = CotuneTheme.panelBorder(theme);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -25,9 +22,10 @@ class BottomNav extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: CotuneTheme.panelShadow(),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -116,17 +114,10 @@ class _NavButton extends StatelessWidget {
               color: bg,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Center(
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 26,
-              ),
-            ),
+            child: Center(child: Icon(icon, color: iconColor, size: 26)),
           ),
         ),
       ),
     );
   }
 }
-

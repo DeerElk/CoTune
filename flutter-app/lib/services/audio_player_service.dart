@@ -17,6 +17,9 @@ class _QueueItem {
 class AudioPlayerService {
   final AudioPlayer player = AudioPlayer();
   String? currentTrackId;
+  String? currentTitle;
+  String? currentArtist;
+  String? currentPath;
   final Random _random = Random();
   List<_QueueItem> _queue = const [];
   int _currentIndex = -1;
@@ -52,7 +55,12 @@ class AudioPlayerService {
     }
   }
 
-  Future<void> playUri(String uri, {String? trackId}) async {
+  Future<bool> playUri(
+    String uri, {
+    String? trackId,
+    String? title,
+    String? artist,
+  }) async {
     try {
       if (uri.trim().isEmpty) {
         throw Exception('Empty audio path');
@@ -64,35 +72,87 @@ class AudioPlayerService {
           ps.processingState != ProcessingState.loading;
       if (sameTrack && alreadyLoaded) {
         await player.play();
-        return;
+        return true;
       }
 
       currentTrackId = trackId;
+      currentTitle = title;
+      currentArtist = artist;
+      currentPath = uri;
       if (trackId != null) {
         final idx = _queue.indexWhere((t) => t.id == trackId);
         if (idx >= 0) _currentIndex = idx;
       }
       final normalized = _normalizeLocalPath(uri);
-      if (normalized != null) {
-        if (!normalized.startsWith('content://')) {
-          final f = File(normalized);
-          if (!f.existsSync()) {
-            throw Exception('Audio file not found: $normalized');
-          }
-        }
-        try {
-          await player.setFilePath(normalized);
-        } catch (_) {
-          // Windows fallback: some codecs/paths work better via file URI.
-          await player.setUrl(Uri.file(normalized).toString());
-        }
-      } else {
-        await player.setUrl(uri);
+      final loaded = await _loadSource(uri: uri, normalized: normalized);
+      if (!loaded) {
+        throw Exception('Unable to load audio source');
       }
       await player.play();
+      debugPrint(
+        'AudioPlayerService.playUri started: trackId=$trackId uri=$uri',
+      );
+      return true;
     } catch (e) {
-      print('AudioPlayerService.playUri error: $e, uri=$uri');
+      debugPrint('AudioPlayerService.playUri error: $e, uri=$uri');
+      return false;
     }
+  }
+
+  Future<bool> _loadSource({
+    required String uri,
+    required String? normalized,
+  }) async {
+    if (normalized != null) {
+      if (normalized.startsWith('content://')) {
+        try {
+          await player.setUrl(normalized);
+          return true;
+        } catch (_) {}
+        return false;
+      }
+
+      final f = File(normalized);
+      if (!f.existsSync()) {
+        debugPrint('AudioPlayerService: file not found: $normalized');
+        return false;
+      }
+
+      try {
+        await player.setFilePath(normalized);
+        debugPrint('AudioPlayerService source via setFilePath: $normalized');
+        return true;
+      } catch (_) {}
+
+      try {
+        await player.setAudioSource(AudioSource.uri(Uri.file(normalized)));
+        debugPrint(
+          'AudioPlayerService source via setAudioSource(file): $normalized',
+        );
+        return true;
+      } catch (_) {}
+
+      try {
+        await player.setUrl(Uri.file(normalized).toString());
+        debugPrint('AudioPlayerService source via setUrl(file): $normalized');
+        return true;
+      } catch (_) {}
+      return false;
+    }
+
+    try {
+      await player.setUrl(uri);
+      debugPrint('AudioPlayerService source via setUrl(raw): $uri');
+      return true;
+    } catch (_) {}
+
+    // As a last resort, try treating input as local path.
+    try {
+      await player.setFilePath(uri);
+      debugPrint('AudioPlayerService source via setFilePath(raw): $uri');
+      return true;
+    } catch (_) {}
+    return false;
   }
 
   String? _normalizeLocalPath(String uri) {
@@ -120,6 +180,9 @@ class AudioPlayerService {
   Future<void> stop() async {
     await player.stop();
     currentTrackId = null;
+    currentTitle = null;
+    currentArtist = null;
+    currentPath = null;
   }
 
   Future<void> seek(Duration pos) => player.seek(pos);

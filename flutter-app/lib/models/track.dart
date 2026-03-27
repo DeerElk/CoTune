@@ -35,7 +35,7 @@ class Track {
   static Track fromJson(Map m) {
     final id = (m['id'] as String?) ?? const Uuid().v4();
     final title = (m['title'] as String?) ?? '';
-    final artist = (m['artist'] as String?) ?? 'Unknown Artist';
+    final artist = (m['artist'] as String?) ?? '';
     final path = (m['path'] as String?) ?? '';
     final liked = (m['liked'] as bool?) ?? false;
     final recognized = (m['recognized'] as bool?) ?? true;
