@@ -37,6 +37,8 @@
   - [Сборка и запуск Windows](guides/windows-build.md)
 - `testing/`
   - [Docker тест-сеть](testing/docker-test-network.md)
+  - [План тестирования](testing/testing-plan.md)
+  - [Результаты тестирования](testing/testing-results.md)
 - `operations/`
   - [Развертывание bootstrap-peer](operations/bootstrap-deploy.md)
   - [Диагностика и типовые проблемы](operations/troubleshooting.md)

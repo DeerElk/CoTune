@@ -65,7 +65,8 @@ class PlayerFullScreenSheet extends StatelessWidget {
     final canLike = current != null;
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final size = MediaQuery.of(context).size;
+    final mediaQuery = MediaQuery.of(context);
+    final size = mediaQuery.size;
     final onSurface = theme.colorScheme.onSurface;
     final bgTop = theme.brightness == Brightness.dark
         ? const Color(0xFF121212)
@@ -130,9 +131,10 @@ class PlayerFullScreenSheet extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final contentWidth = math.min(constraints.maxWidth, 1080.0);
+                  final compactLayout = constraints.maxHeight < 760;
                   final animSize = math.min(
                     contentWidth * 0.72,
-                    size.height * 0.38,
+                    size.height * (compactLayout ? 0.28 : 0.38),
                   );
                   final animFrameA = theme.brightness == Brightness.dark
                       ? _animFrame1Dark
@@ -145,8 +147,16 @@ class PlayerFullScreenSheet extends StatelessWidget {
                     alignment: Alignment.topCenter,
                     child: SizedBox(
                       width: contentWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 16, 8, 18),
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          8,
+                          compactLayout ? 8 : 16,
+                          8,
+                          math.max(
+                            compactLayout ? 12 : 18,
+                            mediaQuery.padding.bottom + 8,
+                          ),
+                        ),
                         child: Column(
                           children: [
                             StreamBuilder<bool>(
@@ -167,7 +177,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                 );
                               },
                             ),
-                            const SizedBox(height: 32),
+                            SizedBox(height: compactLayout ? 18 : 32),
                             Text(
                               title,
                               textAlign: TextAlign.center,
@@ -178,7 +188,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                     ?.copyWith(
                                       color: onSurface,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 26,
+                                      fontSize: compactLayout ? 22 : 26,
                                     ),
                               ),
                             ),
@@ -195,7 +205,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                     ),
                               ),
                             ),
-                            const SizedBox(height: 26),
+                            SizedBox(height: compactLayout ? 18 : 26),
                             StreamBuilder<Duration>(
                               stream: audio.player.positionStream,
                               builder: (context, snap) {
@@ -265,11 +275,17 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                 );
                               },
                             ),
-                            const SizedBox(height: 30),
+                            SizedBox(height: compactLayout ? 18 : 30),
                             StreamBuilder<bool>(
                               stream: audio.player.playingStream,
                               builder: (context, s) {
                                 final playing = s.data ?? false;
+                                final mainControlSize = compactLayout
+                                    ? 74.0
+                                    : 88.0;
+                                final mainIconSize = compactLayout
+                                    ? 38.0
+                                    : 44.0;
                                 return Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -277,7 +293,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                       icon: Icon(
                                         Icons.skip_previous_rounded,
                                         color: onSurface,
-                                        size: 38,
+                                        size: compactLayout ? 34 : 38,
                                       ),
                                       onPressed: () async {
                                         final pos = audio.player.position;
@@ -290,8 +306,8 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 10),
                                     Container(
-                                      width: 88,
-                                      height: 88,
+                                      width: mainControlSize,
+                                      height: mainControlSize,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: CotuneTheme.highlight,
@@ -309,7 +325,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                           playing
                                               ? Icons.pause_rounded
                                               : Icons.play_arrow_rounded,
-                                          size: 44,
+                                          size: mainIconSize,
                                           color:
                                               CotuneTheme.playerPrimaryControlIcon(
                                                 theme,
@@ -334,7 +350,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                       icon: Icon(
                                         Icons.skip_next_rounded,
                                         color: onSurface,
-                                        size: 38,
+                                        size: compactLayout ? 34 : 38,
                                       ),
                                       onPressed: () => audio.next(),
                                     ),
@@ -342,7 +358,7 @@ class PlayerFullScreenSheet extends StatelessWidget {
                                 );
                               },
                             ),
-                            const SizedBox(height: 28),
+                            SizedBox(height: compactLayout ? 18 : 28),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [

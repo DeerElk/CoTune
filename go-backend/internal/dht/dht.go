@@ -34,8 +34,11 @@ type Service struct {
 
 type Stats struct {
 	WANActive        bool           `json:"wan_active"`
+	LANActive        bool           `json:"lan_active"`
 	WANRoutingSize   int            `json:"wan_routing_size"`
 	LANRoutingSize   int            `json:"lan_routing_size"`
+	RoutingSize      int            `json:"routing_size"`
+	RoutingScope     string         `json:"routing_scope"`
 	BucketOccupancy  map[string]int `json:"bucket_occupancy"`
 	ProviderKeyCount int            `json:"provider_key_count"`
 }
@@ -105,9 +108,24 @@ func (s *Service) bootstrapRetryLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if s.dht.WANActive() && len(s.h.Network().Peers()) > 0 {
+			if s.hasUsableRouting() && len(s.h.Network().Peers()) > 0 {
 				continue
 			}
+
+			// In LAN-only environments (for example Docker bridge networks), the
+			// dual DHT may be healthy via the LAN table even when the WAN table is
+			// intentionally empty. Re-bootstrap against already connected peers
+			// before attempting external bootstrap addresses.
+			if len(s.h.Network().Peers()) > 0 {
+				retryCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
+				err := s.dht.Bootstrap(retryCtx)
+				cancel()
+				if err == nil && s.hasUsableRouting() {
+					log.Printf("Bootstrap retry refreshed LAN/WAN routing via connected peers")
+					continue
+				}
+			}
+
 			var connected bool
 			for _, addr := range s.bootstrapAddrs {
 				if addr == "" {
@@ -152,10 +170,28 @@ func (s *Service) bootstrap(ctx context.Context, addrStr string) error {
 }
 
 func (s *Service) ensureBootstrapConnectivity(ctx context.Context) error {
-	if len(s.bootstrapAddrs) == 0 {
+	connectedPeers := len(s.h.Network().Peers())
+	if s.hasUsableRouting() && connectedPeers > 0 {
 		return nil
 	}
-	if s.dht.WANActive() && len(s.h.Network().Peers()) > 0 {
+
+	// Best effort refresh of the dual DHT against already connected peers.
+	// This is important in local/private test networks where the WAN table is
+	// expected to stay empty and content routing should happen through the LAN
+	// DHT instead of being blocked by missing public bootstrap reachability.
+	if connectedPeers > 0 {
+		tryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err := s.dht.Bootstrap(tryCtx)
+		cancel()
+		if err != nil {
+			log.Printf("ensureBootstrapConnectivity: local dual bootstrap refresh failed: %v", err)
+		}
+		if s.hasUsableRouting() || len(s.bootstrapAddrs) == 0 {
+			return nil
+		}
+	}
+
+	if len(s.bootstrapAddrs) == 0 {
 		return nil
 	}
 
@@ -173,6 +209,15 @@ func (s *Service) ensureBootstrapConnectivity(ctx context.Context) error {
 		lastErr = err
 	}
 
+	if s.hasUsableRouting() {
+		return nil
+	}
+	if connectedPeers > 0 {
+		// Do not block routing operations in a LAN-only mesh just because the
+		// external bootstrap peer is unreachable. The actual DHT call below will
+		// decide whether enough routing state is available.
+		return nil
+	}
 	if lastErr != nil {
 		return fmt.Errorf("failed to restore bootstrap connectivity: %w", lastErr)
 	}
@@ -277,7 +322,24 @@ func (s *Service) Stats() Stats {
 		}
 	}
 	if s.dht.LAN != nil && s.dht.LAN.RoutingTable() != nil {
-		stats.LANRoutingSize = s.dht.LAN.RoutingTable().Size()
+		rt := s.dht.LAN.RoutingTable()
+		stats.LANRoutingSize = rt.Size()
+		for cpl := uint(0); cpl < 24; cpl++ {
+			n := rt.NPeersForCpl(cpl)
+			if n > 0 {
+				stats.BucketOccupancy["lan_cpl_"+strconv.FormatUint(uint64(cpl), 10)] = n
+			}
+		}
+	}
+	stats.LANActive = stats.LANRoutingSize > 0
+	stats.RoutingSize = stats.WANRoutingSize
+	stats.RoutingScope = "wan"
+	if stats.LANRoutingSize > stats.RoutingSize {
+		stats.RoutingSize = stats.LANRoutingSize
+		stats.RoutingScope = "lan"
+	}
+	if stats.RoutingSize == 0 {
+		stats.RoutingScope = "none"
 	}
 
 	s.mu.RLock()
@@ -285,6 +347,16 @@ func (s *Service) Stats() Stats {
 	s.mu.RUnlock()
 
 	return stats
+}
+
+func (s *Service) hasUsableRouting() bool {
+	if s == nil || s.dht == nil {
+		return false
+	}
+	if s.dht.WANActive() {
+		return true
+	}
+	return s.dht.LAN != nil && s.dht.LAN.RoutingTable() != nil && s.dht.LAN.RoutingTable().Size() > 0
 }
 
 // FindProvidersForToken finds providers for a token (used in search)

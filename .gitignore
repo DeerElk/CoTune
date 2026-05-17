@@ -18,8 +18,12 @@ flutter-app/android/app/libs/*.aar
 
 # Go
 go-backend/vendor/
+go-backend/data/
+go-backend/docker/reports/
 bootstrap/vendor/
 *.log
+.gocache
+.gomodcache/
 
 # bootstrap
 *.swp

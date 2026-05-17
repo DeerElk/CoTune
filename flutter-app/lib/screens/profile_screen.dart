@@ -356,220 +356,241 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 14),
-            Center(
-              child: _loading
-                  ? const SizedBox(
-                      width: 220,
-                      height: 220,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : _peerInfo == null
-                  ? Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          l10n.noPeerInfo,
-                          style: GoogleFonts.inter(
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                      ),
-                    )
-                  : QRService.qrWidget(
-                      jsonEncode(_peerInfo!), // ✅ кодируем при показе QR
-                      size: 220,
-                    ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
                 children: [
-                  _buildNetworkStatusCard(theme),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CotuneTheme.highlight,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: () {
-                            if (_peerInfo != null) {
-                              QRService.copyToClipboard(
-                                context,
-                                jsonEncode(_peerInfo!), // ✅ кодируем здесь
-                                successMessage: l10n.copied,
-                              );
-                            }
-                          },
-                          icon: Icon(
-                            Icons.copy,
-                            color: CotuneTheme.headerTextColor,
-                          ),
-                          label: Text(
-                            l10n.copy,
-                            style: GoogleFonts.inter(
-                              color: CotuneTheme.headerTextColor,
+                  const SizedBox(height: 14),
+                  Center(
+                    child: _loading
+                        ? const SizedBox(
+                            width: 220,
+                            height: 220,
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        : _peerInfo == null
+                        ? Container(
+                            width: 220,
+                            height: 220,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CotuneTheme.highlight,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: _peerInfo == null
-                              ? null
-                              : _shareQrImagePlusText,
-                          icon: Icon(
-                            Icons.share,
-                            color: CotuneTheme.headerTextColor,
-                          ),
-                          label: Text(
-                            l10n.share,
-                            style: GoogleFonts.inter(
-                              color: CotuneTheme.headerTextColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CotuneTheme.highlight,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: _qrScanSupported ? _scanQr : null,
-                          icon: Icon(
-                            Icons.qr_code_scanner,
-                            color: CotuneTheme.headerTextColor,
-                          ),
-                          label: Text(
-                            l10n.scan,
-                            style: GoogleFonts.inter(
-                              color: CotuneTheme.headerTextColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CotuneTheme.highlight,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: _enterManual,
-                          icon: Icon(
-                            Icons.edit,
-                            color: CotuneTheme.headerTextColor,
-                          ),
-                          label: Text(
-                            l10n.enterManually,
-                            style: GoogleFonts.inter(
-                              color: CotuneTheme.headerTextColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.connectedHosts,
-                  style: GoogleFonts.inter(
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _hosts.isEmpty
-                  ? Center(
-                      child: Text(
-                        l10n.noConnectedHosts,
-                        style: GoogleFonts.inter(
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      itemCount: _hosts.length,
-                      itemBuilder: (_, i) => Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.device_hub,
-                              color: theme.iconTheme.color,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
+                            child: Center(
                               child: Text(
-                                _hosts[i],
+                                l10n.noPeerInfo,
                                 style: GoogleFonts.inter(
                                   color: theme.textTheme.bodyLarge?.color,
                                 ),
                               ),
                             ),
-                            IconButton(
-                              tooltip: l10n.copyAddressTooltip,
-                              icon: Icon(
-                                Icons.copy,
-                                color: theme.iconTheme.color,
+                          )
+                        : QRService.qrWidget(
+                            jsonEncode(_peerInfo!), // ✅ кодируем при показе QR
+                            size: 220,
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        _buildNetworkStatusCard(theme),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CotuneTheme.highlight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  if (_peerInfo != null) {
+                                    QRService.copyToClipboard(
+                                      context,
+                                      jsonEncode(
+                                        _peerInfo!,
+                                      ), // ✅ кодируем здесь
+                                      successMessage: l10n.copied,
+                                    );
+                                  }
+                                },
+                                icon: Icon(
+                                  Icons.copy,
+                                  color: CotuneTheme.headerTextColor,
+                                ),
+                                label: Text(
+                                  l10n.copy,
+                                  style: GoogleFonts.inter(
+                                    color: CotuneTheme.headerTextColor,
+                                  ),
+                                ),
                               ),
-                              onPressed: () {
-                                QRService.copyToClipboard(
-                                  context,
-                                  _hosts[i],
-                                  successMessage: l10n.copied,
-                                );
-                              },
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CotuneTheme.highlight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: _peerInfo == null
+                                    ? null
+                                    : _shareQrImagePlusText,
+                                icon: Icon(
+                                  Icons.share,
+                                  color: CotuneTheme.headerTextColor,
+                                ),
+                                label: Text(
+                                  l10n.share,
+                                  style: GoogleFonts.inter(
+                                    color: CotuneTheme.headerTextColor,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CotuneTheme.highlight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: _qrScanSupported ? _scanQr : null,
+                                icon: Icon(
+                                  Icons.qr_code_scanner,
+                                  color: CotuneTheme.headerTextColor,
+                                ),
+                                label: Text(
+                                  l10n.scan,
+                                  style: GoogleFonts.inter(
+                                    color: CotuneTheme.headerTextColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CotuneTheme.highlight,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: _enterManual,
+                                icon: Icon(
+                                  Icons.edit,
+                                  color: CotuneTheme.headerTextColor,
+                                ),
+                                label: Text(
+                                  l10n.enterManually,
+                                  style: GoogleFonts.inter(
+                                    color: CotuneTheme.headerTextColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        l10n.connectedHosts,
+                        style: GoogleFonts.inter(
+                          color: theme.textTheme.bodyLarge?.color,
+                        ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  _hosts.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text(
+                              l10n.noConnectedHosts,
+                              style: GoogleFonts.inter(
+                                color: theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          itemCount: _hosts.length,
+                          itemBuilder: (_, i) => Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.device_hub,
+                                  color: theme.iconTheme.color,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _hosts[i],
+                                    style: GoogleFonts.inter(
+                                      color: theme.textTheme.bodyLarge?.color,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: l10n.copyAddressTooltip,
+                                  icon: Icon(
+                                    Icons.copy,
+                                    color: theme.iconTheme.color,
+                                  ),
+                                  onPressed: () {
+                                    QRService.copyToClipboard(
+                                      context,
+                                      _hosts[i],
+                                      successMessage: l10n.copied,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

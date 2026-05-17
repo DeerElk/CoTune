@@ -155,7 +155,10 @@ func (d *Daemon) logNetworkStats() {
 	d.logger.Info(
 		"network-stats",
 		"peer_id", d.h.ID().String(),
-		"routing_table_size", stats.WANRoutingSize,
+		"routing_table_size", stats.RoutingSize,
+		"routing_scope", stats.RoutingScope,
+		"wan_active", stats.WANActive,
+		"lan_active", stats.LANActive,
 		"lan_routing_table_size", stats.LANRoutingSize,
 		"dht_bucket_info", stats.BucketOccupancy,
 		"provider_count", stats.ProviderKeyCount,
@@ -390,10 +393,14 @@ func (d *Daemon) Status() map[string]interface{} {
 		"peer_id":            d.h.ID().String(),
 		"addresses":          addrs,
 		"connected_peers":    len(d.h.Network().Peers()),
-		"routing_table_size": stats.WANRoutingSize,
+		"routing_table_size": stats.RoutingSize,
+		"routing_scope":      stats.RoutingScope,
+		"wan_routing_size":   stats.WANRoutingSize,
+		"lan_routing_size":   stats.LANRoutingSize,
 		"dht_bucket_info":    stats.BucketOccupancy,
 		"provider_count":     stats.ProviderKeyCount,
 		"wan_active":         stats.WANActive,
+		"lan_active":         stats.LANActive,
 	}
 }
 

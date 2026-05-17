@@ -308,6 +308,14 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	if asBool(status["wan_active"]) {
 		wanActive = 1
 	}
+	lanActive := 0
+	if asBool(status["lan_active"]) {
+		lanActive = 1
+	}
+	routingScope, _ := status["routing_scope"].(string)
+	if routingScope == "" {
+		routingScope = "none"
+	}
 
 	var sb strings.Builder
 	sb.WriteString("# HELP cotune_connected_peers Number of connected peers.\n")
@@ -322,6 +330,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	sb.WriteString("# HELP cotune_wan_active Whether WAN DHT is active.\n")
 	sb.WriteString("# TYPE cotune_wan_active gauge\n")
 	sb.WriteString(fmt.Sprintf("cotune_wan_active{peer_id=\"%s\"} %d\n", peerID, wanActive))
+	sb.WriteString("# HELP cotune_lan_active Whether LAN DHT is active.\n")
+	sb.WriteString("# TYPE cotune_lan_active gauge\n")
+	sb.WriteString(fmt.Sprintf("cotune_lan_active{peer_id=\"%s\",scope=\"%s\"} %d\n", peerID, routingScope, lanActive))
 
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	w.WriteHeader(http.StatusOK)
@@ -363,4 +374,3 @@ func asBool(v interface{}) bool {
 	b, ok := v.(bool)
 	return ok && b
 }
-
