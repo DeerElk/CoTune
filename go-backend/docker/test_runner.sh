@@ -7,6 +7,7 @@ MODE="${1:-smoke}"
 PEERS="${2:-${PEERS:-10}}"
 RUN_BUILD="${RUN_BUILD:-0}"
 REPORT_DIR="${ROOT_DIR}/docker/reports"
+CONTROL_READY_TIMEOUT="${CONTROL_READY_TIMEOUT:-60}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 REPORT_FILE="${REPORT_DIR}/run_${MODE}_${STAMP}.json"
 
@@ -15,6 +16,43 @@ mkdir -p "${REPORT_DIR}"
 run() {
   echo "[runner] $*"
   bash -lc "$*"
+}
+
+container_port() {
+  local cid="$1"
+  docker port "${cid}" 8080/tcp | awk -F: 'NR==1{print $NF}'
+}
+
+wait_control_api() {
+  local deadline=$((SECONDS + CONTROL_READY_TIMEOUT))
+  local ids port all_ready
+
+  echo "[runner] waiting for peer control APIs (${CONTROL_READY_TIMEOUT}s timeout)"
+  while (( SECONDS < deadline )); do
+    mapfile -t ids < <(cd "${ROOT_DIR}" && docker compose ps -q --status running peer)
+    if [[ ${#ids[@]} -eq 0 ]]; then
+      sleep 1
+      continue
+    fi
+
+    all_ready=1
+    for cid in "${ids[@]}"; do
+      port="$(container_port "${cid}")"
+      if [[ -z "${port}" ]] || ! curl -fsS "http://127.0.0.1:${port}/status" >/dev/null 2>&1; then
+        all_ready=0
+        break
+      fi
+    done
+
+    if [[ "${all_ready}" -eq 1 ]]; then
+      echo "[runner] control APIs ready: ${#ids[@]} peer(s)"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "[runner] control APIs were not ready after ${CONTROL_READY_TIMEOUT}s" >&2
+  return 1
 }
 
 json_escape() {
@@ -44,7 +82,7 @@ if [[ "${RUN_BUILD}" == "1" ]]; then
 else
   run "cd \"${ROOT_DIR}\"; docker compose up -d --scale peer=${PEERS}"
 fi
-sleep 3
+wait_control_api
 
 list_before="$(bash "${CTRL}" list-peers || true)"
 conv_before="$(bash "${CTRL}" convergence || true)"
@@ -56,7 +94,9 @@ mass_search_out="$(bash "${CTRL}" mass-search load_track || true)"
 
 if [[ "${MODE}" == "full" ]]; then
   churn_out="$(bash "${CTRL}" churn 3 1 || true)"
+  wait_control_api
   latency_out="$(bash "${CTRL}" latency 50 1 5 || true)"
+  wait_control_api
 else
   churn_out="skipped"
   latency_out="skipped"
@@ -92,4 +132,3 @@ EOF
 echo "[runner] Report saved: ${REPORT_FILE}"
 echo "[runner] avg_connected_before=${avg_connected_before} avg_connected_after=${avg_connected_after}"
 echo "[runner] avg_routing_before=${avg_routing_before} avg_routing_after=${avg_routing_after}"
-

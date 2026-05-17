@@ -7,17 +7,11 @@
 | Проверка | Команда | Результат |
 | --- | --- | --- |
 | Go unit/integration tests | `go test ./...` с `GOCACHE` внутри проекта | Успешно, код возврата 0 |
-| Flutter tests | `flutter test` | Не завершено в agent-wrapper: запуск Flutter wrapper зависает; у пользователя `flutter --version` и `dart --version` выполняются в обычном PowerShell |
-| Docker smoke | `bash docker/test_runner.sh smoke 3` | Не выполнено: Docker Desktop daemon недоступен (`dockerDesktopLinuxEngine` pipe отсутствует) |
+| Flutter tests | `flutter test` | Успешно, 7 тестов пройдены |
+| Docker smoke runner | `bash docker/test_runner.sh smoke 3` | Успешно, создан отчет `go-backend/docker/reports/run_smoke_20260517_175421.json` |
+| Docker full runner | `bash docker/test_runner.sh full 3` | Успешно, создан отчет `go-backend/docker/reports/run_full_20260517_175531.json` |
 
 ## Детали Go-прогона
-
-Для обхода ограничения доступа к пользовательскому Go cache использовался локальный cache:
-
-```powershell
-$env:GOCACHE='C:\Users\ellev\Documents\IdeaProjects\CoTune\.gocache'
-go test ./...
-```
 
 Проверенные пакеты:
 
@@ -26,8 +20,6 @@ go test ./...
 - `internal/dht`
 - `internal/search`
 - `internal/storage`
-
-Первичный запуск без локального `GOCACHE` падал из-за доступа к `C:\Users\ellev\AppData\Local\go-build` и Go telemetry в `AppData`, то есть проблема относилась к окружению, а не к тестируемому коду. После настройки `GOCACHE` финальный запуск всех Go-тестов прошел успешно.
 
 ## Добавленные автоматизированные тесты
 
@@ -38,15 +30,59 @@ go test ./...
 - Control API: отклонение неверных HTTP-методов, некорректного JSON, пустого search query и неполных connect данных.
 - Flutter: сериализация моделей, Hive-хранилище треков/плейлистов, защита от дублей, QR-widget smoke test.
 
-## Ограничения текущего прогона
+## Детали Flutter-прогона
 
-Flutter-тесты не были подтверждены агентом из-за зависания `flutter.bat` при запуске через инструмент выполнения команд. Пользователь подтвердил, что в обычном PowerShell `flutter --version` и `dart --version` отрабатывают корректно, поэтому команда `flutter test` оставлена как воспроизводимая проверка для локального запуска.
+Команда:
 
-Docker smoke не запускался, потому что Docker Desktop daemon не был активен. После запуска Docker Desktop ожидаемая команда:
+```powershell
+cd flutter-app
+flutter test
+```
+
+Результат: `All tests passed`, всего 7 тестов. Проверены сериализация моделей, значения по умолчанию, Hive-хранилище треков и плейлистов, защита от дублей по `id`/`ctid`, QR-widget.
+
+## Детали Docker-прогона
+
+Команда smoke:
 
 ```bash
 cd go-backend
 bash docker/test_runner.sh smoke 3
 ```
 
-Отчет должен появиться в `go-backend/docker/reports/run_smoke_<timestamp>.json`.
+завершилась с кодом 0 и создала отчет:
+
+```text
+go-backend/docker/reports/run_smoke_20260517_175421.json
+```
+
+Фактические результаты smoke:
+
+- `avg_connected_before=2.00`, `avg_connected_after=2.00`;
+- `avg_routing_before=2.00`, `avg_routing_after=2.00`;
+- `mass-add`: по 2/2 трека на каждый peer;
+- `mass-search load_track`: по 20 результатов на каждый peer;
+- итоговая `convergence`: `routing=2`, `connected=2`, provider-count увеличился после добавления треков.
+
+Команда full:
+
+```bash
+cd go-backend
+bash docker/test_runner.sh full 3
+```
+
+создала отчет:
+
+```text
+go-backend/docker/reports/run_full_20260517_175531.json
+```
+
+Фактические результаты full:
+
+- `avg_connected_before=2.00`, `avg_connected_after=2.00`;
+- `avg_routing_before=2.00`, `avg_routing_after=2.00`;
+- `mass-add`: по 2/2 трека на каждый peer;
+- `mass-search load_track`: по 20 результатов на каждый peer;
+- churn выполнил остановку и повторный старт peer;
+- latency применил и снял `netem delay 50ms loss 1%`;
+- после churn/latency сеть сохранила связность: для каждого peer `routing=2`, `connected=2`.

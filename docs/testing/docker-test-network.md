@@ -63,6 +63,12 @@ bash docker/test_runner.sh full 50
 
 Отчеты сохраняются в `go-backend/docker/reports/`.
 
+Перед выполнением сценария runner ожидает готовности Control API всех running peer. Таймаут можно изменить переменной:
+
+```bash
+CONTROL_READY_TIMEOUT=90 bash docker/test_runner.sh smoke 10
+```
+
 ## Остановка
 
 ```bash
