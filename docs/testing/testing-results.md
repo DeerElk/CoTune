@@ -1,6 +1,6 @@
 # Результаты тестирования CoTune
 
-Дата выполнения агентом: 17.05.2026.
+Дата актуализации: 18.05.2026.
 
 ## Выполненные проверки
 
@@ -9,7 +9,7 @@
 | Go unit/integration tests | `go test ./...` с `GOCACHE` внутри проекта | Успешно, код возврата 0 |
 | Flutter tests | `flutter test` | Успешно, 7 тестов пройдены |
 | Docker smoke runner | `bash docker/test_runner.sh smoke 3` | Успешно, создан отчет `go-backend/docker/reports/run_smoke_20260517_175421.json` |
-| Docker full runner | `bash docker/test_runner.sh full 3` | Успешно, создан отчет `go-backend/docker/reports/run_full_20260517_175531.json` |
+| Docker full runner | `bash docker/test_runner.sh full 20` | Успешно, создан отчет `go-backend/docker/reports/run_full_20260518_005106.json` |
 
 ## Детали Go-прогона
 
@@ -68,21 +68,27 @@ go-backend/docker/reports/run_smoke_20260517_175421.json
 
 ```bash
 cd go-backend
-bash docker/test_runner.sh full 3
+bash docker/test_runner.sh full 20
 ```
 
 создала отчет:
 
 ```text
-go-backend/docker/reports/run_full_20260517_175531.json
+go-backend/docker/reports/run_full_20260518_005106.json
 ```
 
 Фактические результаты full:
 
-- `avg_connected_before=2.00`, `avg_connected_after=2.00`;
-- `avg_routing_before=2.00`, `avg_routing_after=2.00`;
-- `mass-add`: по 2/2 трека на каждый peer;
-- `mass-search load_track`: по 20 результатов на каждый peer;
-- churn выполнил остановку и повторный старт peer;
-- latency применил и снял `netem delay 50ms loss 1%`;
-- после churn/latency сеть сохранила связность: для каждого peer `routing=2`, `connected=2`.
+- количество peer: `20`;
+- `avg_connected_before=19.00`, `avg_connected_after=19.00`;
+- `avg_routing_before=19.00`, `avg_routing_after=19.00`;
+- `mass-add`: по 2/2 трека на каждый peer, всего 40 тестовых треков;
+- `mass-search load_track`: результаты получены на каждом peer, от 20 до 31 результата;
+- churn выполнил 3 остановки и повторных запуска peer;
+- latency применил и снял `netem delay 50ms loss 1%` на 20 peer;
+- после churn/latency сеть сохранила связность: для каждого peer `routing=19`, `connected=19`.
+
+## Исправления по результатам проверки
+
+- Docker runner был доработан ожиданием готовности Control API перед выполнением сценариев.
+- JSON-отчеты Docker runner были исправлены: многострочные выводы команд теперь экранируются как JSON-строки, поэтому отчеты открываются без ошибки `Unexpected end of string`.

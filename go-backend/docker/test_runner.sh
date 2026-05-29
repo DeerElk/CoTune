@@ -55,8 +55,23 @@ wait_control_api() {
   return 1
 }
 
-json_escape() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+json_string() {
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$1" | python3 -c 'import json, sys; print(json.dumps(sys.stdin.read(), ensure_ascii=False))'
+    return
+  fi
+
+  printf '%s' "$1" | awk '
+    BEGIN { printf "\"" }
+    {
+      gsub(/\\/,"\\\\")
+      gsub(/"/,"\\\"")
+      gsub(/\t/,"\\t")
+      if (NR > 1) printf "\\n"
+      printf "%s", $0
+    }
+    END { printf "\"" }
+  '
 }
 
 collect_metric_avg() {
@@ -108,9 +123,9 @@ avg_routing_after="$(collect_metric_avg routing)"
 
 cat > "${REPORT_FILE}" <<EOF
 {
-  "mode": "$(json_escape "${MODE}")",
+  "mode": $(json_string "${MODE}"),
   "peers": ${PEERS},
-  "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "generated_at": $(json_string "$(date -u +%Y-%m-%dT%H:%M:%SZ)"),
   "summary": {
     "avg_connected_before": ${avg_connected_before},
     "avg_routing_before": ${avg_routing_before},
@@ -118,13 +133,13 @@ cat > "${REPORT_FILE}" <<EOF
     "avg_routing_after": ${avg_routing_after}
   },
   "outputs": {
-    "list_before": "$(json_escape "${list_before}")",
-    "convergence_before": "$(json_escape "${conv_before}")",
-    "mass_add": "$(json_escape "${mass_add_out}")",
-    "mass_search": "$(json_escape "${mass_search_out}")",
-    "churn": "$(json_escape "${churn_out}")",
-    "latency": "$(json_escape "${latency_out}")",
-    "convergence_after": "$(json_escape "${conv_after}")"
+    "list_before": $(json_string "${list_before}"),
+    "convergence_before": $(json_string "${conv_before}"),
+    "mass_add": $(json_string "${mass_add_out}"),
+    "mass_search": $(json_string "${mass_search_out}"),
+    "churn": $(json_string "${churn_out}"),
+    "latency": $(json_string "${latency_out}"),
+    "convergence_after": $(json_string "${conv_after}")
   }
 }
 EOF
